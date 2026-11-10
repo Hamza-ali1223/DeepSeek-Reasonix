@@ -590,8 +590,6 @@ export function App({ hub }: { hub: HubPort }) {
             at={settings === false ? null : settings === true ? "" : settings}
             onGo={showPrefs}
             onFiles={openFiles}
-            onHome={hidePrefs}
-            onRail={() => setRail((v) => !v)}
             onFeedback={() => setFeedback(feedbackEntryTab(feedbackUnread))}
             onNew={() => {
               hidePrefs();
