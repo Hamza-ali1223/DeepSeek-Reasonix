@@ -440,7 +440,7 @@ describe("WorkbenchPanel", () => {
     expect(screen.getByRole("tab", { name: "My page" }).getAttribute("aria-selected")).toBe("true");
   });
 
-  it("keeps the column when every browser tab is closed at once beside an explorer file", async () => {
+  it("keeps the column when every tab, an explorer file included, is closed at once", async () => {
     const user = userEvent.setup();
     const onCloseManual = vi.fn();
     const pages = [
@@ -454,11 +454,11 @@ describe("WorkbenchPanel", () => {
     expect(screen.getByRole("tab", { name: "README.md" })).toBeTruthy();
 
     await user.pointer({ keys: "[MouseRight]", target: screen.getByRole("tab", { name: "My page" }) });
-    await user.click(await screen.findByRole("menuitem", { name: "关闭全部浏览器标签" }));
+    await user.click(await screen.findByRole("menuitem", { name: "关闭全部标签" }));
 
     expect(screen.queryByRole("tab", { name: "My page" })).toBeNull();
     expect(screen.queryByRole("tab", { name: "Agent page" })).toBeNull();
-    expect(screen.getByRole("tab", { name: "README.md" })).toBeTruthy();
+    expect(screen.queryByRole("tab", { name: "README.md" })).toBeNull();
     expect(onCloseManual).not.toHaveBeenCalled();
     expect(container.querySelector(".workbench-body")?.hasAttribute("data-files")).toBe(true);
   });
