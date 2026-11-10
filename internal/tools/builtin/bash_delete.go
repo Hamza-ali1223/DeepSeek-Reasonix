@@ -55,10 +55,19 @@ func (b bash) refuseDestructiveDelete(ctx context.Context, sh sandbox.Shell, com
 	if err == nil && seen.containsDelete && seen.dynamicPayload {
 		return deleteRefusal(CodeShellAnalysisUnknown, "Use a literal interpreter payload or split it from the recursive delete.")
 	}
+	if err == nil && len(seen.outside) > 0 {
+		return askDeleteOutsideScope(ctx, seen.outside)
+	}
 	return err
 }
 
-type deleteJudgement struct{ containsDelete, dynamicPayload bool }
+type deleteJudgement struct {
+	containsDelete, dynamicPayload bool
+	// outside are the targets beyond the workspace and its granted folders that
+	// no rule protects: they are put to the user once, after the whole command
+	// has been judged.
+	outside []string
+}
 
 func (b bash) judgeDelete(ctx context.Context, sh sandbox.Shell, command string, depth int, priorUnsafe bool, seen *deleteJudgement) error {
 	if depth > 12 {
@@ -70,17 +79,7 @@ func (b bash) judgeDelete(ctx context.Context, sh sandbox.Shell, command string,
 		analysis, err = analyzePowerShellDelete(ctx, sh, command)
 	}
 	if err != nil {
-		code := CodeShellSyntax
-		message := "Fix the shell syntax and retry: " + err.Error()
-		if powerShell {
-			code = CodeParserUnavailable
-			message = "The host shell parser is unavailable; retry when the host parser is restored."
-		}
-		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-			code = CodeParserTimeout
-			message = "The host shell parser timed out or was canceled; retry the call."
-		}
-		return deleteRefusal(code, message)
+		return deleteParseRefusal(err, powerShell)
 	}
 	if analysis.SyntaxError != "" {
 		return deleteRefusal(CodeShellSyntax, "Fix the shell syntax and retry: "+analysis.SyntaxError)
@@ -140,13 +139,33 @@ func (b bash) judgeDelete(ctx context.Context, sh sandbox.Shell, command string,
 			for _, dir := range directories {
 				scoped := b
 				scoped.workDir = dir
-				if !scoped.boundedDeleteTarget(target) {
-					return deleteRefusal(CodeDestructiveTarget, "Use a target strictly inside the workspace or granted write roots; home, filesystem roots, workspace ancestors and out-of-scope paths are protected in every approval mode.")
+				resolved, class := scoped.classifyDeleteTarget(target)
+				switch class {
+				case deleteInside:
+				case deleteOutside:
+					seen.outside = appendMissing(seen.outside, resolved)
+				default:
+					return deleteRefusal(CodeDestructiveTarget, destructiveTargetMessage)
 				}
 			}
 		}
 	}
 	return nil
+}
+
+// deleteParseRefusal names why the parse failed; a timeout outranks the PowerShell default.
+func deleteParseRefusal(err error, powerShell bool) error {
+	code := CodeShellSyntax
+	message := "Fix the shell syntax and retry: " + err.Error()
+	if powerShell {
+		code = CodeParserUnavailable
+		message = "The host shell parser is unavailable; retry when the host parser is restored."
+	}
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		code = CodeParserTimeout
+		message = "The host shell parser timed out or was canceled; retry the call."
+	}
+	return deleteRefusal(code, message)
 }
 
 func deleteDirectoryChange(name string) bool {
@@ -208,15 +227,22 @@ func (b bash) deleteCwd() string {
 }
 
 func (b bash) boundedDeleteTarget(target string) bool {
+	_, class := b.classifyDeleteTarget(target)
+	return class == deleteInside
+}
+
+// classifyDeleteTarget resolves a literal delete target and says which of the
+// three it is. The resolved path is what an approval names.
+func (b bash) classifyDeleteTarget(target string) (string, deleteClass) {
 	if !literalDeletePath(target) {
-		return false
+		return "", deleteProtected
 	}
 	if runtime.GOOS == "windows" && strings.HasPrefix(target, "/") || runtime.GOOS == "windows" && strings.HasPrefix(target, "\\") && !filepath.IsAbs(target) {
-		return false
+		return "", deleteProtected
 	}
 	// Provider-qualified and drive-relative paths do not have ordinary filesystem scope.
 	if strings.Contains(target, ":") && (!filepath.IsAbs(target) || strings.Contains(strings.TrimPrefix(target, filepath.VolumeName(target)), ":")) {
-		return false
+		return "", deleteProtected
 	}
 	cwd := b.workDir
 	if cwd == "" {
@@ -226,19 +252,19 @@ func (b bash) boundedDeleteTarget(target string) bool {
 		target = cwd + string(filepath.Separator) + target
 	}
 	if refuseNetworkPath(target, networkRoots(cwd, b.sb.WriteRoots)) != nil {
-		return false
+		return "", deleteProtected
 	}
 	resolved, err := realPath(target)
 	if err != nil || filepath.Dir(resolved) == resolved {
-		return false
+		return "", deleteProtected
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return false
+		return "", deleteProtected
 	}
 	home, err = realPath(home)
 	if err != nil || withinFold(resolved, home) {
-		return false
+		return "", deleteProtected
 	}
 	workspacePath := b.workDir
 	if len(b.sb.WriteRoots) > 0 {
@@ -246,7 +272,7 @@ func (b bash) boundedDeleteTarget(target string) bool {
 	}
 	workspace, err := realPath(workspacePath)
 	if err != nil || withinFold(resolved, workspace) {
-		return false
+		return "", deleteProtected
 	}
 	roots := b.sb.WriteRoots
 	if len(roots) == 0 {
@@ -255,10 +281,15 @@ func (b bash) boundedDeleteTarget(target string) bool {
 	if temp := b.sessionTemp.Dir(); temp != "" {
 		roots = append(append([]string(nil), roots...), temp)
 	}
+	inside := false
 	for _, root := range realRoots(roots) {
-		if within(root, resolved) && !withinFold(resolved, root) {
-			return true
+		if withinFold(resolved, root) {
+			return "", deleteProtected
 		}
+		inside = inside || within(root, resolved)
 	}
-	return false
+	if inside {
+		return resolved, deleteInside
+	}
+	return resolved, deleteOutside
 }
