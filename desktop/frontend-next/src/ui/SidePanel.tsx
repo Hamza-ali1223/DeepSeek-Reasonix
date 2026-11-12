@@ -286,7 +286,7 @@ export function SidePanel({
               </div>
               {pending.text && (
                 <div className="sideturn" data-role="side">
-                  <Markdown text={pending.text} images={false} />
+                  <Markdown text={pending.text} streaming={busy} images={false} />
                   {pending.phase === "failed" && (
                     <small className="sidehint">
                       {t("common.interrupted")}
