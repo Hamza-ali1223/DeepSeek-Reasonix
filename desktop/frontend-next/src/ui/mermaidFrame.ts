@@ -21,7 +21,7 @@ window.addEventListener("message", (event: MessageEvent) => {
       const { svg } = await mermaid.render(`mermaid-${request.id}`, request.source);
       parent.postMessage({ type: "mermaid.result", id: request.id, svg: sanitizeMermaidSvg(svg) }, location.origin);
     } catch (error) {
-      parent.postMessage({ type: "mermaid.result", id: request.id, error: error instanceof Error ? error.message : String(error) }, location.origin);
+      parent.postMessage({ type: "mermaid.result", id: request.id, error: String(error) }, location.origin);
     } finally {
       document.querySelectorAll("body > :not(script)").forEach((node) => node.remove());
     }

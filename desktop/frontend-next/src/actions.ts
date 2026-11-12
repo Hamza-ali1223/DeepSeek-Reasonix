@@ -351,6 +351,8 @@ export const ACTIONS: UIAction[] = [
   { id: "ask.step", kind: "view", target: "none", proof: "interaction" },
   { id: "code.download", kind: "interaction", target: "none", proof: "interaction" },
   { id: "code.fold", kind: "view", target: "none", proof: "interaction" },
+  { id: "mermaid.preview", kind: "view", target: "none", proof: "interaction" },
+  { id: "mermaid.source", kind: "view", target: "none", proof: "interaction" },
   { id: "remote-ask.answer", kind: "interaction", target: "none", proof: "interaction" },
   { id: "browser.login", kind: "interaction", target: "none", proof: "interaction" },
   { id: "browser.trust-certificate", kind: "shell-native", target: "none", proof: "interaction" },

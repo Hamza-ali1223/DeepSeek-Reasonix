@@ -23,7 +23,7 @@ it("routes only Mermaid fences to a lazy preview and keeps source/copy available
   expect(write).toHaveBeenCalledWith(source);
   await user.click(screen.getByRole("button", { name: "预览" }));
   expect(screen.getByRole("img", { name: "Mermaid 图表" })).toBeTruthy();
-  expect(container.querySelector('.code-wrap[data-lang="go"] pre')?.textContent).toBe("func main() {}\n");
+  expect(container.querySelector('.code-wrap[data-lang="go"] .code-tx')?.textContent).toBe("func main() {}");
   expect(container.querySelector("strong")?.textContent).toBe("Next paragraph");
   expect(container.querySelector('a[href="https://example.com"]')?.getAttribute("rel")).toBe("noreferrer noopener");
 });

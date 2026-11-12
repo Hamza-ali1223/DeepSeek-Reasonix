@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { t } from "../i18n";
+import { reason } from "../i18n/kernel";
 import { CopyButton } from "./CopyButton";
 import "./mermaid.css";
 
@@ -21,7 +22,7 @@ export function MermaidDiagram({ source, live }: { source: string; live?: boolea
     // Ordinary Markdown and unsettled tails never need the renderer module or iframe.
     void import("./mermaid").then((engine) => engine.renderMermaid(source, theme)).then(
       (svg) => { if (alive) setRendered({ source, theme, svg }); },
-      (error: unknown) => { if (alive) setRendered({ source, theme, error: error instanceof Error ? error.message : String(error) }); },
+      (error: unknown) => { if (alive) setRendered({ source, theme, error: reason(error) }); },
     );
     return () => { alive = false; };
   }, [source, theme, live]);
