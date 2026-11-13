@@ -1,4 +1,4 @@
-import { createElement, isValidElement, memo, useEffect, useState, type JSX, type ReactNode, type MouseEvent, type KeyboardEvent } from "react";
+import { createElement, isValidElement, memo, useEffect, useMemo, useState, type JSX, type ReactNode, type MouseEvent, type KeyboardEvent } from "react";
 import ReactMarkdown, { type Components, type ExtraProps } from "react-markdown";
 import { t } from "../i18n";
 import { CodeBlock } from "./CodeBlock";
@@ -207,11 +207,9 @@ const DIRECTED: Components = {
 const Block = memo(function Block({ src, math, emoji, code, tail, live, local, images }: { src: string; math: Plugin | null; emoji: Plugin | null; code: Plugin | null; tail?: boolean; live?: boolean; local?: LocalRefs; images: boolean }) {
   // Inside the memo, so a settled block normalises once instead of per chunk.
   const body = normalizeMath(tail ? balanceFences(src) : src);
-  return (
-    <ReactMarkdown
-      remarkPlugins={([...BASE_REMARK, [remarkFileLinks, local?.linkable ?? local?.path], [remarkLocalImages, local?.path, local?.granted], ...(emoji ? [emoji] : [])]) as never}
-      rehypePlugins={([...BASE_REHYPE, math, code].filter(Boolean)) as never}
-      components={{
+  // A new component identity remounts what it rendered, so a plugin arriving late must not
+  // replace these: a diagram would lose its zoom, its Preview/Source choice and its viewer.
+  const components = useMemo<Components>(() => ({
         ...DIRECTED,
         // Every link here comes from model output; a webview navigating away
         // would replace the app with the page.
@@ -274,7 +272,12 @@ const Block = memo(function Block({ src, math, emoji, code, tail, live, local, i
             <table>{children}</table>
           </div>
         ),
-      }}
+  }), [local, images, live]);
+  return (
+    <ReactMarkdown
+      remarkPlugins={([...BASE_REMARK, [remarkFileLinks, local?.linkable ?? local?.path], [remarkLocalImages, local?.path, local?.granted], ...(emoji ? [emoji] : [])]) as never}
+      rehypePlugins={([...BASE_REHYPE, math, code].filter(Boolean)) as never}
+      components={components}
     >
       {body}
     </ReactMarkdown>

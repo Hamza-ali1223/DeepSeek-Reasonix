@@ -75,6 +75,24 @@ describe("shared image preview entrances", () => {
     document.body.style.overflow = "";
   });
 
+  it("stays open when a drag of the picture is released over the backdrop", () => {
+    render(<UserCard item={item} port={{ workspaceImageURL: () => src }} />);
+    fireEvent.click(screen.getByRole("button", { name: "查看图片 preview.png" }));
+    const dialog = screen.getByRole("dialog");
+    const picture = within(dialog).getByRole("img");
+    const view = picture.parentElement!;
+    fireEvent.pointerDown(picture, { pointerId: 1, button: 0, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(view, { pointerId: 1, clientX: 10, clientY: 90 });
+    fireEvent.pointerUp(view, { pointerId: 1, clientX: 10, clientY: 90 });
+    fireEvent.click(view, { detail: 1 });
+    fireEvent.click(dialog, { detail: 1 });
+    expect(screen.getByRole("dialog")).toBe(dialog);
+    expect(picture.style.transform).toBe("translate(0px, 80px) scale(1)");
+    fireEvent.pointerDown(dialog, { pointerId: 2, button: 0 });
+    fireEvent.click(dialog, { detail: 1 });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
   it("keeps a failed preview closable and makes a missing thumbnail unavailable", () => {
     render(<UserCard item={item} port={{ workspaceImageURL: () => src }} />);
     fireEvent.click(screen.getByRole("button", { name: "查看图片 preview.png" }));
