@@ -48,7 +48,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version="${TAG#fork-}"
+          # Same derivation the Studio job validates; a tag this cannot read is
+          # refused here rather than producing a CLI whose version is nonsense.
+          [[ "$TAG" =~ ^fork-v(.+)$ ]] || { echo "::error::fork release tag must be fork-v<version>, got: $TAG"; exit 1; }
+          version="${BASH_REMATCH[1]}"
           commit="$(git rev-parse --short=12 HEAD)"
           built="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           ldflags="-s -w -X main.version=${version} -X main.gitCommit=${commit} -X main.buildTimeUTC=${built}"
@@ -109,8 +112,15 @@ jobs:
         id: v
         shell: bash
         run: |
-          version="${TAG#fork-}"
-          version="${version#v}"
+          set -euo pipefail
+          # electron-builder states the version in the Windows executable's
+          # resource block, where a major number that is not a number is refused
+          # ("Invalid major number"). Validating here costs a second; discovering
+          # it in `Build the bundle` costs the whole SPA and kernel build.
+          [[ "$TAG" =~ ^fork-v(.+)$ ]] || { echo "::error::fork release tag must be fork-v<version>, got: $TAG"; exit 1; }
+          version="${BASH_REMATCH[1]}"
+          semver='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+          [[ "$version" =~ $semver ]] || { echo "::error::version '$version' is not MAJOR.MINOR.PATCH[-PRERELEASE]; a leading dot, a missing digit, or '+build' metadata stops electron-builder"; exit 1; }
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "building Studio ${version}"
 
@@ -133,7 +143,10 @@ jobs:
       - name: Build the bundle
         working-directory: desktop/electron
         shell: bash
-        run: pnpm exec electron-builder --dir -c.extraMetadata.version="${{ steps.v.outputs.version }}"
+        # --publish never: electron-builder also publishes implicitly when it
+        # finds a git tag, which would have this job upload a second time and
+        # from a runner that is not the one the release is assembled on.
+        run: pnpm exec electron-builder --dir --publish never -c.extraMetadata.version="${{ steps.v.outputs.version }}"
 
       # An emulated x64 program runs on ARM64 Windows, so a bundle that starts
       # proves nothing about its architecture; every PE image must match.
@@ -144,7 +157,7 @@ jobs:
       - name: Package installer and portable zip
         working-directory: desktop/electron
         shell: bash
-        run: pnpm exec electron-builder --win --x64 -c.extraMetadata.version="${{ steps.v.outputs.version }}"
+        run: pnpm exec electron-builder --win --x64 --publish never -c.extraMetadata.version="${{ steps.v.outputs.version }}"
 
       - name: Checksums
         shell: bash
