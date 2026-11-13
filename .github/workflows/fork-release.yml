@@ -1,0 +1,205 @@
+name: Fork release (Windows)
+
+# Windows-only, unsigned fork builds: the CLI for both Windows architectures
+# plus the Studio desktop installer and portable zip for x64.
+#
+# Deliberately not wired to upstream's release machinery:
+#   - tags are `fork-v*` so this can never fire on upstream's `studio-v*` / `v*`;
+#   - no Apple, Certum, npm, Homebrew or R2 credentials are read, so the build
+#     needs no secrets at all;
+#   - the release is a prerelease, so it never presents itself as upstream's
+#     latest, and the app's own updater cannot adopt it (its catalog and minisign
+#     key are pinned to dl.reasonix.io in internal/platform/update).
+
+on:
+  push:
+    tags: ["fork-v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing fork-v* tag to build and publish
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fork-release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  windows-cli:
+    name: CLI (windows)
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build Windows binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${TAG#fork-}"
+          commit="$(git rev-parse --short=12 HEAD)"
+          built="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          ldflags="-s -w -X main.version=${version} -X main.gitCommit=${commit} -X main.buildTimeUTC=${built}"
+          mkdir -p dist
+          for arch in amd64 arm64; do
+            echo "building windows/${arch}"
+            CGO_ENABLED=0 GOOS=windows GOARCH="${arch}" go build -trimpath \
+              -ldflags "${ldflags}" \
+              -o "dist/reasonix-windows-${arch}.exe" ./cmd/reasonix
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fork-cli-windows
+          path: dist/*.exe
+          if-no-files-found: error
+
+  windows-studio:
+    name: Studio (windows/amd64)
+    runs-on: windows-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      # Real-time scanning inspects every byte packaging writes, and this job
+      # writes a quarter of a gigabyte twice. The runner is discarded afterwards.
+      - name: Stop Defender scanning the build
+        continue-on-error: true
+        shell: pwsh
+        run: Set-MpPreference -DisableRealtimeMonitoring $true
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # pnpm 10 is what the lockfiles are written against; pnpm 11 refuses them
+      # and asks to purge the modules directory, which a non-interactive runner
+      # cannot answer.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: |
+            desktop/frontend-next/pnpm-lock.yaml
+            desktop/electron/pnpm-lock.yaml
+
+      - name: Resolve version
+        id: v
+        shell: bash
+        run: |
+          version="${TAG#fork-}"
+          version="${version#v}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "building Studio ${version}"
+
+      - name: Build the SPA
+        working-directory: desktop/frontend-next
+        shell: bash
+        run: pnpm install --frozen-lockfile && pnpm build
+
+      # Builds the kernel this shell spawns and stages the pinned CUA Driver.
+      # The version is injected here as well as into the Electron metadata: the
+      # kernel names a release when it installs one on another machine.
+      - name: Build the kernel
+        working-directory: desktop/electron
+        shell: bash
+        env:
+          REASONIX_VERSION: ${{ steps.v.outputs.version }}
+          REASONIX_GOARCH: amd64
+        run: pnpm install --frozen-lockfile && pnpm run build:host
+
+      - name: Build the bundle
+        working-directory: desktop/electron
+        shell: bash
+        run: pnpm exec electron-builder --dir -c.extraMetadata.version="${{ steps.v.outputs.version }}"
+
+      # An emulated x64 program runs on ARM64 Windows, so a bundle that starts
+      # proves nothing about its architecture; every PE image must match.
+      - name: Every PE image is built for amd64
+        shell: bash
+        run: node desktop/electron/packaging/pe.js "dist/win-unpacked" amd64
+
+      - name: Package installer and portable zip
+        working-directory: desktop/electron
+        shell: bash
+        run: pnpm exec electron-builder --win --x64 -c.extraMetadata.version="${{ steps.v.outputs.version }}"
+
+      - name: Checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          # packaging/canonical-artifact-names.js has already renamed x64 to
+          # amd64; a leftover spelling is a build studio-manifest could not name.
+          test -f ReasonixStudio-windows-amd64-installer.exe
+          test -f ReasonixStudio-windows-amd64.zip
+          sha256sum ./*.exe ./*.zip > SHA256SUMS
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fork-studio-windows
+          path: |
+            dist/ReasonixStudio-windows-amd64-installer.exe
+            dist/ReasonixStudio-windows-amd64.zip
+            dist/SHA256SUMS
+          if-no-files-found: error
+
+  publish:
+    name: Publish
+    needs: [windows-cli, windows-studio]
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+
+      # The two jobs both write SHA256SUMS for their own files, so one overwrites
+      # the other when they are merged into one directory. Rebuild it here from
+      # what actually arrived.
+      - name: One checksum file for everything
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd assets
+          rm -f SHA256SUMS
+          sha256sum ./*.exe ./*.zip > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: Fork ${{ env.TAG }}
+          generate_release_notes: true
+          # These are unofficial fork builds. A prerelease keeps them out of the
+          # "latest" slot upstream's links and badges resolve to.
+          prerelease: true
+          files: |
+            assets/*.exe
+            assets/*.zip
+            assets/SHA256SUMS
