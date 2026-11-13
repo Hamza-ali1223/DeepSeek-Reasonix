@@ -96,3 +96,6 @@ scripts/official-theme-art/__pycache__/
 *.exe
 *.exe~
 /relayfake
+
+# A local assistant's per-user preference notes, not project state.
+.commandcode/
