@@ -17,7 +17,7 @@ const EXT: Record<string, string> = {
   shell: "sh", zsh: "sh", powershell: "ps1", ps1: "ps1", sql: "sql", yaml: "yaml", yml: "yaml",
   toml: "toml", markdown: "md", md: "md", rust: "rs", rs: "rs", java: "java", c: "c",
   cpp: "cpp", "c++": "cpp", csharp: "cs", cs: "cs", ruby: "rb", rb: "rb", php: "php",
-  xml: "xml", kotlin: "kt", swift: "swift", lua: "lua", dockerfile: "Dockerfile",
+  xml: "xml", svg: "svg", kotlin: "kt", swift: "swift", lua: "lua", dockerfile: "Dockerfile",
 };
 
 export function extensionFor(lang: string): string {

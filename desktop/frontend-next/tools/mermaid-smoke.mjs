@@ -31,37 +31,37 @@ try {
   const source = "flowchart TD\n  Browser --> App\n  App --> Database\n";
   const markdown = "# Studio Markdown · architecture\n\n```mermaid\n" + source + "```\n\n**Neighboring Markdown** stays readable. [Documentation](https://example.com)\n\n```go\nfunc main() {}\n```";
   await page.evaluate((text) => window.renderMarkdown("```mermaid\n" + text, true), source);
-  await page.locator(".mermaid-source").waitFor();
+  await page.locator(".diagram-source").waitFor();
   assert.equal(await page.locator('iframe[title="Mermaid rendering sandbox"]').count(), 0, "live tail must stay source without loading the engine");
   await page.evaluate((text) => window.renderMarkdown(text), markdown);
-  await page.locator(".mermaid-preview img").waitFor({ timeout: 45000 });
-  await page.waitForFunction(() => document.querySelector(".mermaid-preview img")?.naturalWidth > 0);
-  const svg = await page.locator(".mermaid-preview img").evaluate((image) => decodeURIComponent(image.src.split(",")[1]));
+  await page.locator(".diagram-preview img").waitFor({ timeout: 45000 });
+  await page.waitForFunction(() => document.querySelector(".diagram-preview img")?.naturalWidth > 0);
+  const svg = await page.locator(".diagram-preview img").evaluate((image) => decodeURIComponent(image.src.split(",")[1]));
   assert.match(svg, /Browser/);
   assert.match(svg, /Database/);
   assert.match(svg, /marker/);
   assert.doesNotMatch(svg, /foreignObject|onload|<script|href=/i);
-  await page.locator('[data-action="mermaid.source"]').click();
-  assert.equal(await page.locator(".mermaid-source").textContent(), source);
+  await page.locator('[data-action="diagram.source"]').click();
+  assert.equal(await page.locator(".diagram-source").textContent(), source);
   await page.getByRole("button", { name: "Copy Mermaid source" }).click();
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), source);
-  await page.locator('[data-action="mermaid.preview"]').click();
+  await page.locator('[data-action="diagram.preview"]').click();
   assert.equal(await page.locator('.code-wrap[data-lang="go"] pre').textContent(), "func main() {}\n");
   assert.equal(await page.locator('#mermaid-evidence a').getAttribute("rel"), "noreferrer noopener");
   if (output) await mkdir(output, { recursive: true });
   for (const [theme, width, label] of [["light", 1400, "light-wide"], ["dark", 1400, "dark-wide"], ["light", 390, "light-phone"], ["dark", 390, "dark-phone"]]) {
     await page.setViewportSize({ width, height: 1000 });
-    const previous = await page.locator(".mermaid-preview img").getAttribute("src");
+    const previous = await page.locator(".diagram-preview img").getAttribute("src");
     const previousTheme = await page.evaluate(() => document.documentElement.dataset.theme);
     await page.evaluate((value) => { document.documentElement.dataset.theme = value; }, theme);
-    if (previousTheme !== theme) await page.waitForFunction((src) => document.querySelector(".mermaid-preview img")?.src !== src, previous);
-    await page.waitForFunction(() => document.querySelector(".mermaid-preview img")?.naturalWidth > 0);
+    if (previousTheme !== theme) await page.waitForFunction((src) => document.querySelector(".diagram-preview img")?.src !== src, previous);
+    await page.waitForFunction(() => document.querySelector(".diagram-preview img")?.naturalWidth > 0);
     if (output) await page.screenshot({ path: `${output}/after-${label}.png` });
   }
   await page.evaluate(() => window.renderMarkdown("```mermaid\nflowchart TD\n A --???\n```"));
-  await page.locator(".mermaid-error").waitFor();
-  assert.match(await page.locator(".mermaid-error").textContent(), /Mermaid rendering failed/);
-  assert.match(await page.locator(".mermaid-source").textContent(), /A --\?\?\?/);
+  await page.locator(".diagram-error").waitFor();
+  assert.match(await page.locator(".diagram-error").textContent(), /Mermaid rendering failed/);
+  assert.match(await page.locator(".diagram-source").textContent(), /A --\?\?\?/);
   for (const definition of [
     'sequenceDiagram\nAlice->>Bob: Hello\nBob-->>Alice: Hi',
     'erDiagram\nUSER ||--o{ ORDER : places',
@@ -69,13 +69,13 @@ try {
     '---\nconfig:\n  securityLevel: loose\n  themeCSS: "@import url(https://evil.invalid/style);"\n---\nflowchart TD\nA[Safe] --> B[Text]',
   ]) {
     await page.evaluate((text) => window.renderMarkdown("```mermaid\n" + text + "\n```"), definition);
-    await page.locator(".mermaid-preview img").waitFor();
-    await page.waitForFunction(() => document.querySelector(".mermaid-preview img")?.naturalWidth > 0);
-    const safe = await page.locator(".mermaid-preview img").evaluate((image) => decodeURIComponent(image.src.split(",")[1]));
+    await page.locator(".diagram-preview img").waitFor();
+    await page.waitForFunction(() => document.querySelector(".diagram-preview img")?.naturalWidth > 0);
+    const safe = await page.locator(".diagram-preview img").evaluate((image) => decodeURIComponent(image.src.split(",")[1]));
     assert.doesNotMatch(safe, /evil\.invalid|onclick|onload|href=|<script|foreignObject/i);
   }
   await page.evaluate(() => window.renderMarkdown('```mermaid\nflowchart TD\n A@{ img: "https://evil.invalid/image.png", label: "Image" }\n```'));
-  await page.locator(".mermaid-preview img, .mermaid-error").waitFor();
+  await page.locator(".diagram-preview img, .diagram-error").waitFor();
   assert.deepEqual(external, [], "no graph-triggered resource request may leave the renderer");
   assert.equal(await page.evaluate(() => typeof window.attack), "undefined");
   console.log("PASS: lazy loading, live tail, real flowchart/sequence/ERD SVGs, source/copy, themes, invalid source, ordinary Markdown and CSP/resource safety");

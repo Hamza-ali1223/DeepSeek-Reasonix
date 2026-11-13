@@ -1,5 +1,5 @@
 import mermaid from "mermaid";
-import { sanitizeMermaidSvg } from "./mermaidSvg";
+import { DIAGRAM_SOURCE_LIMIT, sanitizeInertSvg } from "./inertSvg";
 
 let queue = Promise.resolve();
 window.addEventListener("message", (event: MessageEvent) => {
@@ -8,7 +8,7 @@ window.addEventListener("message", (event: MessageEvent) => {
   if (request?.type !== "mermaid.render" || typeof request.id !== "number" || typeof request.source !== "string" || !["light", "dark"].includes(request.theme)) return;
   queue = queue.then(async () => {
     try {
-      if (request.source.length > 50_000) throw new Error("Mermaid source exceeds the 50,000 character rendering limit");
+      if (request.source.length > DIAGRAM_SOURCE_LIMIT) throw new Error("Mermaid source exceeds the 50,000 character rendering limit");
       mermaid.initialize({
         startOnLoad: false,
         securityLevel: "strict",
@@ -19,7 +19,7 @@ window.addEventListener("message", (event: MessageEvent) => {
         suppressErrorRendering: true,
       });
       const { svg } = await mermaid.render(`mermaid-${request.id}`, request.source);
-      parent.postMessage({ type: "mermaid.result", id: request.id, svg: sanitizeMermaidSvg(svg) }, location.origin);
+      parent.postMessage({ type: "mermaid.result", id: request.id, svg: sanitizeInertSvg(svg) }, location.origin);
     } catch (error) {
       parent.postMessage({ type: "mermaid.result", id: request.id, error: String(error) }, location.origin);
     } finally {

@@ -3,6 +3,7 @@ import ReactMarkdown, { type Components, type ExtraProps } from "react-markdown"
 import { t } from "../i18n";
 import { CodeBlock } from "./CodeBlock";
 import { MermaidDiagram } from "./MermaidDiagram";
+import { SvgDiagram } from "./SvgDiagram";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { remarkCodeSpanLink, remarkTrimAutolink } from "./autolink";
@@ -138,6 +139,9 @@ function cutsOf(md: string): number[] {
   return cuts;
 }
 
+// Fences drawn as pictures rather than listed as code, keyed by lowercased info string.
+const DIAGRAMS: Record<string, (props: { source: string; live?: boolean }) => JSX.Element> = { mermaid: MermaidDiagram, svg: SvgDiagram };
+
 // The fence's own info string, as rehype leaves it on the <code>. Absent for an
 // indented block, which is why the tag is conditional rather than defaulted to
 // a guess at the language.
@@ -256,11 +260,15 @@ const Block = memo(function Block({ src, math, emoji, code, tail, live, local, i
             <span className="md-noimg">{alt}</span>
           );
         },
-        pre: ({ children }) => langOf(children).toLowerCase() === "mermaid" ? (
-          <MermaidDiagram source={textOf(children)} live={live} />
-        ) : (
-          <CodeBlock lang={langOf(children)} source={textOf(children)} live={live}>{children}</CodeBlock>
-        ),
+        pre: ({ children }) => {
+          const lang = langOf(children);
+          const Diagram = DIAGRAMS[lang.toLowerCase()];
+          return Diagram ? (
+            <Diagram source={textOf(children)} live={live} />
+          ) : (
+            <CodeBlock lang={lang} source={textOf(children)} live={live}>{children}</CodeBlock>
+          );
+        },
         table: ({ children }) => (
           <div className="md-tw">
             <table>{children}</table>

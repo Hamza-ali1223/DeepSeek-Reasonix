@@ -1,6 +1,7 @@
 import { MARKET_ACTIONS } from "./actions_market";
 import { SCHEDULE_ACTIONS } from "./actions_schedule";
 import { DOCUMENT_ACTIONS } from "./actions_document";
+import { FENCE_ACTIONS } from "./actions_fence";
 import { FEEDBACK_ACTIONS } from "./actions_feedback";
 import { WORKBENCH_ACTIONS } from "./actions_workbench";
 
@@ -349,10 +350,6 @@ export const ACTIONS: UIAction[] = [
   { id: "surface.edit", kind: "view", target: "entity", proof: "interaction" },
   { id: "ask.answer", kind: "interaction", target: "none", proof: "authority-effect" },
   { id: "ask.step", kind: "view", target: "none", proof: "interaction" },
-  { id: "code.download", kind: "interaction", target: "none", proof: "interaction" },
-  { id: "code.fold", kind: "view", target: "none", proof: "interaction" },
-  { id: "mermaid.preview", kind: "view", target: "none", proof: "interaction" },
-  { id: "mermaid.source", kind: "view", target: "none", proof: "interaction" },
   { id: "remote-ask.answer", kind: "interaction", target: "none", proof: "interaction" },
   { id: "browser.login", kind: "interaction", target: "none", proof: "interaction" },
   { id: "browser.trust-certificate", kind: "shell-native", target: "none", proof: "interaction" },
@@ -794,6 +791,7 @@ export const ACTIONS: UIAction[] = [
   { id: "rail.jump", kind: "view", target: "none", proof: "interaction" },
   ...SCHEDULE_ACTIONS,
   ...DOCUMENT_ACTIONS,
+  ...FENCE_ACTIONS,
 ];
 
 // No action in Studio is reachable from the keyboard alone: every shortcut in
