@@ -18,7 +18,7 @@ it("routes only Mermaid fences to a lazy preview and keeps source/copy available
   expect(await screen.findByRole("img", { name: "Mermaid 图表" })).toBeTruthy();
   expect(engine.render).toHaveBeenCalledWith(source, "light");
   await user.click(screen.getByRole("button", { name: "源代码" }));
-  expect(container.querySelector(".mermaid-source")?.textContent).toBe(source);
+  expect(container.querySelector(".diagram-source")?.textContent).toBe(source);
   await user.click(screen.getByRole("button", { name: "复制 Mermaid 源代码" }));
   expect(write).toHaveBeenCalledWith(source);
   await user.click(screen.getByRole("button", { name: "预览" }));
@@ -32,7 +32,7 @@ it("keeps invalid definitions readable and can recover when the source changes",
   engine.render.mockRejectedValueOnce(new Error("Parse error on line 2"));
   const { container, rerender } = render(<Markdown text={fence("not a diagram\n")} />);
   expect((await screen.findByRole("alert")).textContent).toContain("Parse error on line 2");
-  expect(container.querySelector(".mermaid-source")?.textContent).toBe("not a diagram\n");
+  expect(container.querySelector(".diagram-source")?.textContent).toBe("not a diagram\n");
   rerender(<Markdown text={fence(source)} />);
   expect(await screen.findByRole("img", { name: "Mermaid 图表" })).toBeTruthy();
 });

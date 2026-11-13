@@ -38,6 +38,7 @@ describe("a code block", () => {
   it("saves under the language's own suffix, or as text", () => {
     expect(extensionFor("Go")).toBe("go");
     expect(extensionFor("typescript")).toBe("ts");
+    expect(extensionFor("SVG")).toBe("svg");
     expect(extensionFor("brainfuck")).toBe("txt");
   });
 });

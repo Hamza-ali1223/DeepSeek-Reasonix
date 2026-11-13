@@ -65,6 +65,7 @@ Checked against `studio` at `d779d89bc` on 2026-10-08.
 | Subagents panel | Have differently | `ui/Pane.tsx`, `ui/delegation.ts`; running-state gaps in #12410, #12284 |
 | Goal mode controls | Unverified | Studio renders the `update_goal` tool in `ui/Sym.tsx`; the 1.x lifecycle actions were not compared |
 | Mermaid diagrams in Markdown | Have differently | `ui/MermaidDiagram.tsx`: lazy rendering, source/preview, copy, explicit errors, light/dark; CSP-confined renderer and sanitized inert SVG images (no graph links, callbacks or remote images); no zoom/fullscreen controls. #13748 |
+| SVG fences in Markdown | Have | `ui/SvgDiagram.tsx` shares `ui/DiagramFrame.tsx` with Mermaid: source/preview, copy, explicit errors, 50,000-character cap; rendered only as a sanitized inert `<img>` (no script, links or remote loads), streaming tail stays source. SMIL and CSS `@keyframes` animate, still under reduced motion; `<use>`/`<mpath>` reach shapes in the same drawing only. Mermaid stays still. Fork #1 |
 | Image viewer for attachments / 附件图片预览 | Have | `ui/ImagePreview.tsx`: user messages, composer attachments and tool screenshots share the original-image overlay; click or keyboard opens it, Escape, backdrop or close button dismisses it. 用户消息、输入框附件和工具截图共用原图预览；#13006 |
 
 ## Reference: shell, status and settings
