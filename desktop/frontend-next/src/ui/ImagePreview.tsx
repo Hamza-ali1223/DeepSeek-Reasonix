@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { t } from "../i18n";
 import { useEscape } from "./dismiss";
 import { StudioIcon } from "./StudioIcon";
+import { useZoomPan } from "./zoompan";
 import "./image-preview.css";
 
 export function ImagePreview({
@@ -48,37 +49,34 @@ export function ImagePreview({
   );
 }
 
-function ImageViewer({
+/** The full-window picture viewer. `download` is the file name a saved copy takes; it defaults to `name`. */
+export function ImageViewer({
   src,
   name,
+  download: file,
   onClose,
 }: {
   src: string;
   name: string;
+  download?: string;
   onClose: () => void;
 }) {
   const close = useRef<HTMLButtonElement>(null);
   const [failed, setFailed] = useState(false);
-  const [scale, setScale] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const view = useZoomPan(src);
   const [size, setSize] = useState<[number, number] | null>(null);
-  const drag = useRef<{
-    x: number;
-    y: number;
-    from: { x: number; y: number };
-  } | null>(null);
   useEscape(true, onClose);
   const backdrop = (ev: MouseEvent<HTMLDivElement>) => {
+    if (view.endedDrag()) return;
     if (ev.target === ev.currentTarget && ev.detail < 2) onClose();
   };
   const download = () => {
     const link = document.createElement("a");
     link.href = src;
-    link.download = name;
+    link.download = file ?? name;
     link.click();
   };
-  const zoom = (factor: number) =>
-    setScale((was) => Math.min(8, Math.max(0.2, was * factor)));
+  const zoom = (factor: number) => view.zoom(factor);
   useEffect(() => {
     const previous = document.activeElement;
     const overflow = document.body.style.overflow;
@@ -102,7 +100,9 @@ function ImageViewer({
       data-action-click="image.close"
       data-action-keydown="image.focus-trap"
       data-action-mousedown="image.focus-trap"
+      data-action-pointerdown="image.pan"
       onClick={backdrop}
+      onPointerDownCapture={view.press}
       onMouseDown={(ev) => {
         if (!(ev.target as HTMLElement).closest("button")) ev.preventDefault();
       }}
@@ -171,22 +171,10 @@ function ImageViewer({
         onClick={backdrop}
         onWheel={(ev) => zoom(ev.deltaY < 0 ? 1.1 : 1 / 1.1)}
         onPointerDown={(ev) => {
-          if (ev.target instanceof HTMLImageElement) {
-            drag.current = { x: ev.clientX, y: ev.clientY, from: pan };
-            ev.currentTarget.setPointerCapture(ev.pointerId);
-          }
+          if (ev.target instanceof HTMLImageElement) view.grab(ev);
         }}
-        onPointerMove={(ev) => {
-          const d = drag.current;
-          if (d)
-            setPan({
-              x: d.from.x + ev.clientX - d.x,
-              y: d.from.y + ev.clientY - d.y,
-            });
-        }}
-        onPointerUp={() => {
-          drag.current = null;
-        }}
+        onPointerMove={view.move}
+        onPointerUp={view.release}
       >
         {failed ? (
           <p role="status">{t("chat.image_unavailable")}</p>
@@ -195,9 +183,7 @@ function ImageViewer({
             src={src}
             alt={name}
             draggable={false}
-            style={{
-              transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
-            }}
+            style={{ transform: view.transform }}
             onLoad={(ev) =>
               setSize([
                 ev.currentTarget.naturalWidth,
