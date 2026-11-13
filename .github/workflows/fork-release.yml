@@ -7,9 +7,10 @@ name: Fork release (Windows)
 #   - tags are `fork-v*` so this can never fire on upstream's `studio-v*` / `v*`;
 #   - no Apple, Certum, npm, Homebrew or R2 credentials are read, so the build
 #     needs no secrets at all;
-#   - the release is a prerelease, so it never presents itself as upstream's
-#     latest, and the app's own updater cannot adopt it (its catalog and minisign
-#     key are pinned to dl.reasonix.io in internal/platform/update).
+#   - the app's own updater cannot adopt a fork release: its catalog and
+#     minisign key are pinned to dl.reasonix.io in internal/platform/update.
+#
+# fork-auto-release.yml tags every push to studio and dispatches this workflow.
 
 on:
   push:
@@ -209,9 +210,8 @@ jobs:
           tag_name: ${{ env.TAG }}
           name: Fork ${{ env.TAG }}
           generate_release_notes: true
-          # These are unofficial fork builds. A prerelease keeps them out of the
-          # "latest" slot upstream's links and badges resolve to.
-          prerelease: true
+          prerelease: false
+          make_latest: true
           files: |
             assets/*.exe
             assets/*.zip
