@@ -1,0 +1,111 @@
+name: Fork auto-release
+
+# Every push to studio (a merged PR, or a direct push) bumps the fork version
+# and starts fork-release.yml for the new tag.
+#
+# The bump is a patch by default. Label the merged PR `release:minor` or
+# `release:major` for a bigger step, or run this workflow by hand and choose.
+# A push that changes only text the release does not ship is skipped.
+#
+# The tag is pushed with GITHUB_TOKEN, and a tag pushed that way never starts
+# another workflow, so fork-release.yml is dispatched explicitly instead.
+
+on:
+  push:
+    branches: [studio]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".github/ISSUE_TEMPLATE/**"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Which part of the version to raise
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+permissions:
+  contents: write
+  actions: write
+  pull-requests: read
+
+concurrency:
+  group: fork-auto-release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Tag the next fork version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decide the bump
+        id: bump
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHOSEN: ${{ github.event.inputs.bump }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          bump="${CHOSEN:-}"
+          if [ -z "$bump" ]; then
+            labels="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" --jq '[.[].labels[].name] | join(",")' || true)"
+            echo "labels on the merged PR: ${labels:-none}"
+            case ",${labels}," in
+              *,release:major,*) bump=major ;;
+              *,release:minor,*) bump=minor ;;
+              *) bump=patch ;;
+            esac
+          fi
+          echo "bump=${bump}" >> "$GITHUB_OUTPUT"
+
+      - name: Next tag
+        id: next
+        shell: bash
+        env:
+          BUMP: ${{ steps.bump.outputs.bump }}
+        run: |
+          set -euo pipefail
+          git fetch --force --tags origin
+          if git tag --points-at HEAD | grep -q '^fork-v'; then
+            echo "::notice::HEAD is already tagged ($(git tag --points-at HEAD | grep '^fork-v' | head -1)); nothing to release"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Only plain MAJOR.MINOR.PATCH tags count; anything with a suffix is a
+          # one-off build, and its numbers are the base the first bump starts from.
+          last="$(git tag -l 'fork-v*' | sed 's/^fork-v//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1 || true)"
+          if [ -z "$last" ]; then
+            last="$(git tag -l 'fork-v*' | sed -E 's/^fork-v([0-9]+\.[0-9]+\.[0-9]+).*/\1/' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1 || true)"
+          fi
+          [ -n "$last" ] || { echo "::error::no fork-v tag to count from; push the first one by hand"; exit 1; }
+          IFS=. read -r major minor patch <<< "$last"
+          case "$BUMP" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+            *) echo "::error::unknown bump: $BUMP"; exit 1 ;;
+          esac
+          tag="fork-v${major}.${minor}.${patch}"
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "::error::${tag} already exists on another commit"; exit 1
+          fi
+          echo "from ${last} by ${BUMP} to ${tag}"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Push the tag and start the release
+        if: steps.next.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.next.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git tag "$TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/${TAG}"
+          gh workflow run fork-release.yml --repo "$GITHUB_REPOSITORY" --ref studio -f tag="$TAG"
+          echo "::notice::released as ${TAG}"
