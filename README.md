@@ -302,8 +302,9 @@ For advanced CLI usage and configuration, see the **[CLI reference](./docs/CLI.m
 A small list of folks whose work has shaped Reasonix the most — the current top
 20 contributors by commit count, as of the final upstream release. **These are
 the original upstream contributors:** everyone who built Reasonix before
-maintenance stopped. Work landed on this fork is credited separately, below the
-table. The full contributor graph is on
+maintenance stopped. The contributor grid at the end of this section covers the
+repository as a whole — the same people, plus anyone who has landed work here
+since. The full contributor graph is on
 [GitHub](https://github.com/esengine/DeepSeek-Reasonix/graphs/contributors?all=1).
 
 <!-- reasonix-top-contributors:start -->
@@ -316,22 +317,11 @@ table. The full contributor graph is on
 | [**par73e**](https://github.com/par73e) | [**Bernardxu123**](https://github.com/Bernardxu123) | [**lancy69**](https://github.com/lancy69) | [**Guan0923**](https://github.com/Guan0923) |
 <!-- reasonix-top-contributors:end -->
 
-### Contributors to this fork
-
-Work that lands on this fork is credited here, separately from the upstream
-list above, so the two histories stay distinct:
-
-<p align="center">
-  <a href="https://github.com/Hamza-ali1223/DeepSeek-Reasonix/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=Hamza-ali1223/DeepSeek-Reasonix&max=100&columns=12" alt="Contributors to Hamza-ali1223/DeepSeek-Reasonix" width="860"/>
-  </a>
-</p>
-
 Special thanks to [**Bernardxu123**](https://github.com/Bernardxu123) for designing the project logo and intro video.
 
 <p align="center">
-  <a href="https://github.com/esengine/DeepSeek-Reasonix/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=esengine/DeepSeek-Reasonix&max=100&columns=12" alt="Contributors to esengine/DeepSeek-Reasonix" width="860"/>
+  <a href="https://github.com/Hamza-ali1223/DeepSeek-Reasonix/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=Hamza-ali1223/DeepSeek-Reasonix&max=100&columns=12" alt="Contributors to Hamza-ali1223/DeepSeek-Reasonix, upstream history included" width="860"/>
   </a>
 </p>
 
