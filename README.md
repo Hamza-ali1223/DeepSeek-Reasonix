@@ -2,8 +2,12 @@
   <img src="docs/logo-ghost-wave-effect.svg" alt="Reasonix" width="360"/>
 </p>
 
-> [!WARNING]
-> **Reasonix is no longer maintained as of 2026-11-12.** The final release is v2.61.0; there will be no further releases, fixes or issue triage. The project is MIT-licensed and forks are welcome. See the [announcement](https://github.com/esengine/DeepSeek-Reasonix/issues/15109).
+> [!NOTE]
+> **This is a community-maintained fork of Reasonix.** Upstream
+> ([esengine/DeepSeek-Reasonix](https://github.com/esengine/DeepSeek-Reasonix))
+> stopped maintenance on 2026-11-12 with v2.61.0, so this fork carries the project
+> forward for personal and community use. Prebuilt releases are Windows-only for now;
+> macOS and Linux builds come from source — see [This fork](#this-fork) below.
 
 <p align="center">
   <strong>English</strong>
@@ -22,12 +26,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/esengine/DeepSeek-Reasonix/releases?q=studio-v&expanded=true"><img src="https://img.shields.io/github/v/release/esengine/DeepSeek-Reasonix.svg?filter=studio-v*&include_prereleases&style=flat-square&color=8250df&labelColor=161b22&label=studio%202.x" alt="Reasonix Studio 2.x"/></a>
+  <a href="https://github.com/Hamza-ali1223/DeepSeek-Reasonix/releases"><img src="https://img.shields.io/github/v/release/Hamza-ali1223/DeepSeek-Reasonix.svg?filter=fork-v*&include_prereleases&style=flat-square&color=8250df&labelColor=161b22&label=fork%20release" alt="Reasonix fork release"/></a>
   <a href="https://www.npmjs.com/package/reasonix"><img src="https://img.shields.io/npm/v/reasonix.svg?style=flat-square&color=cb3837&labelColor=161b22&logo=npm&logoColor=white" alt="npm version"/></a>
-  <a href="https://github.com/esengine/DeepSeek-Reasonix/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/esengine/DeepSeek-Reasonix/ci.yml?style=flat-square&label=ci&labelColor=161b22&logo=githubactions&logoColor=white" alt="CI"/></a>
+  <a href="https://github.com/Hamza-ali1223/DeepSeek-Reasonix/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Hamza-ali1223/DeepSeek-Reasonix/ci.yml?style=flat-square&label=ci&labelColor=161b22&logo=githubactions&logoColor=white" alt="CI"/></a>
   <a href="./LICENSE"><img src="https://img.shields.io/npm/l/reasonix.svg?style=flat-square&color=8b949e&labelColor=161b22" alt="license"/></a>
   <a href="https://www.npmjs.com/package/reasonix"><img src="https://img.shields.io/npm/dm/reasonix.svg?style=flat-square&color=3fb950&labelColor=161b22&label=downloads" alt="downloads"/></a>
-  <a href="https://github.com/esengine/DeepSeek-Reasonix/stargazers"><img src="https://img.shields.io/github/stars/esengine/DeepSeek-Reasonix.svg?style=flat-square&color=dbab09&labelColor=161b22&logo=github&logoColor=white" alt="GitHub stars"/></a>
+  <a href="https://github.com/Hamza-ali1223/DeepSeek-Reasonix/stargazers"><img src="https://img.shields.io/github/stars/Hamza-ali1223/DeepSeek-Reasonix.svg?style=flat-square&color=dbab09&labelColor=161b22&logo=github&logoColor=white" alt="GitHub stars"/></a>
   <a href="https://atomgit.com/esengine/DeepSeek-Reasonix"><img src="https://atomgit.com/esengine/DeepSeek-Reasonix/star/badge.svg" alt="AtomGit stars"/></a>
   <a href="https://github.com/esengine/DeepSeek-Reasonix/graphs/contributors"><img src="https://img.shields.io/github/contributors/esengine/DeepSeek-Reasonix.svg?style=flat-square&color=bc8cff&labelColor=161b22&logo=github&logoColor=white" alt="contributors"/></a>
 </p>
@@ -52,6 +56,32 @@ Reasonix is an open-source AI coding assistant. The program runs on your compute
 
 You pick the model: a DeepSeek preset is built in, any OpenAI-compatible service is one config entry, and you pay the model provider directly.
 
+## This fork
+
+This repository is a continuation of Reasonix, maintained by
+[@Hamza-ali1223](https://github.com/Hamza-ali1223) for personal use and for anyone in
+the community who still wants the project. Upstream was discontinued abruptly by its
+author on 2026-11-12 after v2.61.0; its issues are no longer triaged and no further
+upstream releases will be made.
+
+- **The code is upstream's, as written.** Changes here are fixes and additions on top
+  of it rather than a rewrite, so the guides and docs still describe what you run —
+  the first such change is rendering `svg` fences in Studio.
+- **Windows builds ship today.** Every merge to `studio` publishes a
+  [`fork-v*` release](https://github.com/Hamza-ali1223/DeepSeek-Reasonix/releases)
+  with the CLI (`windows/amd64` and `windows/arm64`), plus the Studio installer and
+  portable zip, with `SHA256SUMS`.
+- **macOS and Linux come from source.** No prebuilt fork packages for those platforms
+  yet. Build them with the steps under [Build from source](#build-from-source); the
+  same code produces Studio there too, and Linux webview dependencies and build tags
+  are covered in the [Studio build guide](./desktop/README.md#prerequisites).
+- **Versioning is separate.** Fork releases are `fork-vX.Y.Z`, never upstream's
+  `studio-v*`, so the two lines cannot collide. Larger steps are marked in the pull
+  request before merging.
+- **Issues and pull requests are welcome,** though there is no promised response time.
+
+Reasonix is MIT-licensed, and this fork keeps that licence.
+
 ## What you get
 
 - **Read, edit, run.** It reads code, edits files and runs tests and commands, all inside your project folder.
@@ -62,7 +92,7 @@ You pick the model: a DeepSeek preset is built in, any OpenAI-compatible service
 
 Download, add a model key, open a project. New here? Start with the Studio desktop app.
 
-1. Download and install the desktop app, Reasonix Studio, from the [releases page](https://github.com/esengine/DeepSeek-Reasonix/releases?q=studio-v&expanded=true).
+1. Download and install the desktop app, Reasonix Studio, from the [fork releases page](https://github.com/Hamza-ali1223/DeepSeek-Reasonix/releases).
 2. Open it and enter your model provider and key when asked.
 3. Open your project folder and write what you want, for example "add retry on failure to the http client".
 4. At the level you chose, it stops and asks before anything that needs your say-so. Allow it to continue, or refuse.
@@ -94,7 +124,7 @@ Reasonix ships on two lines. See the [version roadmap announcement](https://gith
 
 | Line | Branch | Status | Get it |
 | --- | --- | --- | --- |
-| **Reasonix 2.x** | `studio` (this branch) | Active development | [Studio releases](https://github.com/esengine/DeepSeek-Reasonix/releases?q=studio-v&expanded=true) |
+| **Reasonix 2.x** | `studio` (this branch) | Active development (this fork) | [Fork releases](https://github.com/Hamza-ali1223/DeepSeek-Reasonix/releases) |
 | **Reasonix 1.x** | [`main-v2`](https://github.com/esengine/DeepSeek-Reasonix/tree/main-v2) | Maintenance / stable | `npm i -g reasonix` · [desktop download](https://reasonix.io/?download=desktop#start) |
 
 - **Want something stable?** Stay on 1.x. It keeps receiving bug fixes,
@@ -138,21 +168,24 @@ Studio, and editor integrations all run the same local Reasonix engine.
 ### Reasonix Studio (2.x)
 
 Download the package for your platform from the latest
-[Studio release](https://github.com/esengine/DeepSeek-Reasonix/releases?q=studio-v&expanded=true)
-(tagged `studio-v2.*`; candidates such as `-rc.N` are marked as
-pre-releases):
+[fork release](https://github.com/Hamza-ali1223/DeepSeek-Reasonix/releases)
+(tagged `fork-v*`):
+
+> [!NOTE]
+> **Windows packages only in this fork.** macOS and Linux build from source
+> ([below](#build-from-source)); the table lists what the same code produces.
 
 | Platform | Package | Architecture |
 | --- | --- | --- |
-| macOS | `.dmg` or `.zip` | Apple Silicon (`arm64`) / Intel (`amd64`) |
+| macOS | Build from source | Apple Silicon (`arm64`) / Intel (`amd64`) |
 | Windows | Installer `-installer.exe` or portable `.zip` | x64 |
-| Linux | `.deb`, `.rpm`, or `.AppImage` (download only) | x64 (`amd64`) / ARM64 (`arm64`, aarch64) |
+| Linux | Build from source | x64 (`amd64`) / ARM64 (`arm64`, aarch64) |
 
-Every package ships with a `.minisig` signature, and the release carries
-`SHA256SUMS`. Once installed, Studio updates itself in place.
+Fork packages are unsigned and ship with `SHA256SUMS`. The in-app updater still
+points at upstream's feed, so it will not offer fork releases: install the next
+`fork-v*` release by hand.
 
-The same release also carries the 2.x `reasonix` CLI as archives for
-`darwin|linux|windows × amd64|arm64`.
+A fork release carries the 2.x `reasonix` CLI for `windows × amd64|arm64`.
 
 ### Reasonix 1.x (stable)
 
@@ -183,7 +216,7 @@ selection, and workspace sessions. Install the 1.x CLI first.
 Clone the repository; `studio` builds 2.x and `main-v2` builds 1.x:
 
 ```sh
-git clone https://github.com/esengine/DeepSeek-Reasonix.git
+git clone https://github.com/Hamza-ali1223/DeepSeek-Reasonix.git
 cd DeepSeek-Reasonix
 git switch studio
 ```
@@ -267,7 +300,10 @@ For advanced CLI usage and configuration, see the **[CLI reference](./docs/CLI.m
 ## Acknowledgments
 
 A small list of folks whose work has shaped Reasonix the most — the current top
-20 contributors by commit count. The full contributor graph is on
+20 contributors by commit count, as of the final upstream release. **These are
+the original upstream contributors:** everyone who built Reasonix before
+maintenance stopped. Work landed on this fork is credited separately, below the
+table. The full contributor graph is on
 [GitHub](https://github.com/esengine/DeepSeek-Reasonix/graphs/contributors?all=1).
 
 <!-- reasonix-top-contributors:start -->
@@ -279,6 +315,17 @@ A small list of folks whose work has shaped Reasonix the most — the current to
 | [**light-front-theory**](https://github.com/light-front-theory) | [**imcreazy**](https://github.com/imcreazy) | [**eghrhegpe**](https://github.com/eghrhegpe) | [**noreply**](https://github.com/noreply) |
 | [**par73e**](https://github.com/par73e) | [**Bernardxu123**](https://github.com/Bernardxu123) | [**lancy69**](https://github.com/lancy69) | [**Guan0923**](https://github.com/Guan0923) |
 <!-- reasonix-top-contributors:end -->
+
+### Contributors to this fork
+
+Work that lands on this fork is credited here, separately from the upstream
+list above, so the two histories stay distinct:
+
+<p align="center">
+  <a href="https://github.com/Hamza-ali1223/DeepSeek-Reasonix/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=Hamza-ali1223/DeepSeek-Reasonix&max=100&columns=12" alt="Contributors to Hamza-ali1223/DeepSeek-Reasonix" width="860"/>
+  </a>
+</p>
 
 Special thanks to [**Bernardxu123**](https://github.com/Bernardxu123) for designing the project logo and intro video.
 
