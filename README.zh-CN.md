@@ -263,7 +263,8 @@ CLI 进阶用法和详细配置见 **[CLI 命令参考](./docs/CLI.zh-CN.md)**�
 ## 致谢
 
 下面这些朋友的工作塑造了 Reasonix 今天的样子 —— 按 commit 数统计的前 20 名贡献者，统计截至上游最后一个版本。
-**他们是上游的原始贡献者：**在上游停止维护之前共同构建了 Reasonix。本分支上产生的工作在表格下方单独列出。
+**他们是上游的原始贡献者：**在上游停止维护之前共同构建了 Reasonix。本节末尾的贡献者头像墙覆盖整个仓库——
+同一个人群，再加上此后在本仓库落地过工作的人。
 完整贡献者列表在
 [GitHub](https://github.com/esengine/DeepSeek-Reasonix/graphs/contributors?all=1)。
 
@@ -277,21 +278,11 @@ CLI 进阶用法和详细配置见 **[CLI 命令参考](./docs/CLI.zh-CN.md)**�
 | [**par73e**](https://github.com/par73e) | [**Bernardxu123**](https://github.com/Bernardxu123) | [**lancy69**](https://github.com/lancy69) | [**Guan0923**](https://github.com/Guan0923) |
 <!-- reasonix-top-contributors:end -->
 
-### 本分支贡献者
-
-本分支上产生的工作在此单独致谢，与上方的上游名单分开记录，两段历史各自清晰：
-
-<p align="center">
-  <a href="https://github.com/Hamza-ali1223/DeepSeek-Reasonix/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=Hamza-ali1223/DeepSeek-Reasonix&max=100&columns=12" alt="Hamza-ali1223/DeepSeek-Reasonix 贡献者" width="860"/>
-  </a>
-</p>
-
 特别感谢 [**Bernardxu123**](https://github.com/Bernardxu123) 设计的项目 logo和开场视频。
 
 <p align="center">
-  <a href="https://github.com/esengine/DeepSeek-Reasonix/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=esengine/DeepSeek-Reasonix&max=100&columns=12" alt="esengine/DeepSeek-Reasonix 贡献者" width="860"/>
+  <a href="https://github.com/Hamza-ali1223/DeepSeek-Reasonix/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=Hamza-ali1223/DeepSeek-Reasonix&max=100&columns=12" alt="Hamza-ali1223/DeepSeek-Reasonix 贡献者，含上游历史" width="860"/>
   </a>
 </p>
 
