@@ -67,9 +67,15 @@ type deleteJudgement struct {
 	// no rule protects: they are put to the user once, after the whole command
 	// has been judged.
 	outside []string
+	// workspace is the session's own directory, captured before any cd the
+	// command performs: a literal cd must not turn its target into workspace.
+	workspace string
 }
 
 func (b bash) judgeDelete(ctx context.Context, sh sandbox.Shell, command string, depth int, priorUnsafe bool, seen *deleteJudgement) error {
+	if seen.workspace == "" {
+		seen.workspace = b.deleteCwd()
+	}
 	if depth > 12 {
 		return deleteRefusal(CodeShellAnalysisUnknown, "Nested interpreter extent is unknown; use a direct delete with a literal workspace path.")
 	}
@@ -139,7 +145,7 @@ func (b bash) judgeDelete(ctx context.Context, sh sandbox.Shell, command string,
 			for _, dir := range directories {
 				scoped := b
 				scoped.workDir = dir
-				resolved, class := scoped.classifyDeleteTarget(target)
+				resolved, class := scoped.classifyDeleteTarget(target, seen.workspace)
 				switch class {
 				case deleteInside:
 				case deleteOutside:
@@ -227,13 +233,13 @@ func (b bash) deleteCwd() string {
 }
 
 func (b bash) boundedDeleteTarget(target string) bool {
-	_, class := b.classifyDeleteTarget(target)
+	_, class := b.classifyDeleteTarget(target, b.deleteCwd())
 	return class == deleteInside
 }
 
 // classifyDeleteTarget resolves a literal delete target and says which of the
 // three it is. The resolved path is what an approval names.
-func (b bash) classifyDeleteTarget(target string) (string, deleteClass) {
+func (b bash) classifyDeleteTarget(target, workspaceDir string) (string, deleteClass) {
 	if !literalDeletePath(target) {
 		return "", deleteProtected
 	}
@@ -266,13 +272,15 @@ func (b bash) classifyDeleteTarget(target string) (string, deleteClass) {
 	if err != nil || withinFold(resolved, home) {
 		return "", deleteProtected
 	}
-	workspacePath := b.workDir
-	if len(b.sb.WriteRoots) > 0 {
-		workspacePath = b.sb.WriteRoots[0]
-	}
-	workspace, err := realPath(workspacePath)
+	// The session workspace decides cleanup, whatever order the sandbox lists its
+	// roots in and wherever the command cd'd: strictly inside it is ordinary
+	// cleanup even as a granted root, while it and its ancestors stay protected.
+	workspace, err := realPath(workspaceDir)
 	if err != nil || withinFold(resolved, workspace) {
 		return "", deleteProtected
+	}
+	if within(workspace, resolved) {
+		return resolved, deleteInside
 	}
 	roots := b.sb.WriteRoots
 	if len(roots) == 0 {
