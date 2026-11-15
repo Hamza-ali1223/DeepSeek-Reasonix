@@ -207,16 +207,14 @@ type Messages struct {
 	ConfigWriteSubjectPrefix       string // subject prefix before the config file path for managed config write approval
 	ConfigWriteReason              string // reason shown for managed config write approval
 	ConfigWriteDeclined            string // model-facing denial when the user declines a managed config write
-	WriteScopeReasonFmt            string // reason on the write-outside-scope card: the folder a wider answer covers
-	ScopeDeclined                  string // model-facing denial when the user declines a write or delete outside the scope
-	DeleteScopeReasonFmt           string // reason on the recursive-delete-outside-scope card: the targets
-	ConfigWriteApprovalChoices     string // approval choice list for managed config write prompts
-	PermissionSavedFmt             string // permission rule saved notice: path, rule
-	PermissionAlreadyAllowedFmt    string // permission rule already covered notice: path, rule
-	PermissionSaveFailedFmt        string // permission rule save failure notice: rule, error
-	DiffFoldedFmt                  string // "… +%d more lines" footer when a writer diff is folded
-	DiffFoldEnabledFmt             string // notice when /diff-fold enables folding, %d = line limit
-	DiffFoldDisabled               string // notice when /diff-fold disables folding (shows all lines)
+	ScopeMessages
+	ConfigWriteApprovalChoices  string // approval choice list for managed config write prompts
+	PermissionSavedFmt          string // permission rule saved notice: path, rule
+	PermissionAlreadyAllowedFmt string // permission rule already covered notice: path, rule
+	PermissionSaveFailedFmt     string // permission rule save failure notice: rule, error
+	DiffFoldedFmt               string // "… +%d more lines" footer when a writer diff is folded
+	DiffFoldEnabledFmt          string // notice when /diff-fold enables folding, %d = line limit
+	DiffFoldDisabled            string // notice when /diff-fold disables folding (shows all lines)
 
 	// `ask` tool question card.
 	AskURLSourceFmt      string
