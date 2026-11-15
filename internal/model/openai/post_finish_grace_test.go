@@ -44,7 +44,7 @@ func relayThatNeverSaysDone(heartbeats bool, usageAfter time.Duration) http.Hand
 	}
 }
 
-func drainStream(t *testing.T, p provider.Provider) (text string, usage *provider.Usage, done bool, failure error, took time.Duration) {
+func drainStream(t *testing.T, p provider.Provider) (text string, usage *provider.Usage, done bool, took time.Duration, failure error) {
 	t.Helper()
 	start := time.Now()
 	ch, err := p.Stream(context.Background(), provider.Request{Messages: []provider.Message{{Role: provider.RoleUser, Content: "hi"}}})
@@ -64,7 +64,7 @@ func drainStream(t *testing.T, p provider.Provider) (text string, usage *provide
 			failure = chunk.Err
 		}
 	}
-	return sb.String(), usage, done, failure, time.Since(start)
+	return sb.String(), usage, done, time.Since(start), failure
 }
 
 func newGraceClient(t *testing.T, url string) provider.Provider {
@@ -82,7 +82,7 @@ func TestAStreamThatNeverSaysDoneEndsOnceItsFinishReasonHasHadItsGrace(t *testin
 		t.Run(name, func(t *testing.T) {
 			srv := httptest.NewServer(relayThatNeverSaysDone(heartbeats, 0))
 			defer srv.Close()
-			text, _, done, failure, took := drainStream(t, newGraceClient(t, srv.URL))
+			text, _, done, took, failure := drainStream(t, newGraceClient(t, srv.URL))
 			if failure != nil {
 				t.Fatalf("a complete answer was reported as a failure: %v", failure)
 			}
@@ -99,7 +99,7 @@ func TestAStreamThatNeverSaysDoneEndsOnceItsFinishReasonHasHadItsGrace(t *testin
 func TestAUsageRecordInsideTheGraceWindowIsStillRead(t *testing.T) {
 	srv := httptest.NewServer(relayThatNeverSaysDone(true, 40*time.Millisecond))
 	defer srv.Close()
-	_, usage, done, failure, _ := drainStream(t, newGraceClient(t, srv.URL))
+	_, usage, done, _, failure := drainStream(t, newGraceClient(t, srv.URL))
 	if failure != nil || !done {
 		t.Fatalf("done=%v failure=%v", done, failure)
 	}
