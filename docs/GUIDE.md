@@ -1316,18 +1316,25 @@ The sandbox remains a second boundary after authorization; confinement cannot
 make ambiguous command parsing safe to authorize automatically.
 
 Permissions are *policy* (which calls to allow / prompt). The **sandbox** is
-*enforcement*: the file-writers (`write_file` / `edit_file` / `multi_edit` / `move_file`)
-keep to `[sandbox] workspace_root` (default: the current dir, so edits stay in the
-project), resolving symlinks and `..` so a link can't tunnel out. A target outside it
-comes to you as a card offering this write or its folder; a home directory, a
-filesystem root and a credential folder are refused without asking. `forbid_read` optionally hides sensitive files or directories from the agent's
-read/list/search tools; use absolute paths or `${HOME}` / `${VAR}` references,
-not `~`, because config expansion is environment-variable based. `bash` is
-itself jailed by default when an OS sandbox is available (`[sandbox] bash`,
-Seatbelt on macOS and bubblewrap on Linux):
-commands may write only those same roots plus platform-specific command
+*enforcement*: the file-writers (`write_file`, `edit_file`, `multi_edit`,
+`move_file`) keep to `[sandbox] workspace_root` (default: the current dir, so
+edits stay in the project).
+
+A target outside it comes to you as a card offering this write or its folder. A
+home directory, a filesystem root and a credential folder are refused without
+asking. The file-writers resolve symlinks and `..`, so a link can't tunnel out.
+
+`forbid_read` optionally hides sensitive files or directories from the agent's
+read/list/search tools. Use absolute paths or `${HOME}` / `${VAR}` references,
+not `~`, because config expansion is environment-variable based.
+
+`bash` is itself jailed by default when an OS sandbox is available (`[sandbox]
+bash`: Seatbelt on macOS and bubblewrap on Linux).
+
+Commands may write only those same roots plus platform-specific command
 temp/cache roots, cannot read configured `forbid_read` roots while the OS
 sandbox is active, and reach the network only when `[sandbox] network` is set.
+
 Reasonix always removes saved provider and bot credential variables from tool
 subprocess environments and automatically adds its global credential `.env` to
 the runtime read-deny boundary. Project `.env` files keep their existing
