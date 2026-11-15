@@ -2,7 +2,7 @@
 owner: @esengine
 backup: @SivanCola
 status: active
-reviewed: 2026-09-29
+reviewed: 2026-11-15
 ---
 
 # Tool permissions: Ask, Auto, and Yolo
@@ -104,13 +104,30 @@ requirement. It still does not bypass explicit `deny` rules or the sandbox.
 - Select Ask or Auto directly to leave Yolo.
 - When entered via shortcut, Reasonix remembers the previous Ask/Auto baseline and restores it on the next toggle.
 
-## Recursive shell deletes
+## Writes and deletes outside the workspace
 
-The shell launch guard refuses recursive deletes of a home directory, filesystem root, workspace ancestor, or target outside the workspace, explicitly granted write roots, and the host's session-private temporary directory. Targets must be strictly below an allowed root, never the root itself.
+The write scope is `[sandbox] workspace_root` (default: the current dir) plus `allow_write` and the folders you granted. A file tool writing outside it, and a shell command that recursively deletes outside it, are put to you as a card.
 
-Workspace-root cleanups such as `rm -rf .` and `rm -rf *` are refused. The model should name a specific subdirectory, for example `rm -rf build`, instead of clearing the workspace root.
+No posture answers this card: Ask, Auto, Yolo and a remembered choice do not settle it, and it is asked fresh each time. A refused answer reaches the model as a refusal naming the reason, and the model is told not to retry it.
 
-These are hard refusals in every approval mode, including Ask after human approval, Auto, and Yolo. A dynamic executable name alone and a non-recursive delete do not trigger this guard.
+### Writes outside the workspace
+
+- The card offers this write only, this folder for the rest of the session, or this folder recorded for the project.
+- A folder answer covers that folder and what is below it, never the whole disk, and never every tool at once.
+- A wider answer is honoured only for a folder that passes the same vetting a stored grant must pass.
+- Reasonix's own storage, a credential directory, a home directory and a filesystem root are refused without asking.
+
+### Recursive deletes outside the workspace
+
+- The card covers the command it was raised for, and nothing else. It offers no folder answer, because a grant for a parent would let the next delete reach everything in it.
+- A home directory, a filesystem root, a workspace ancestor, a path that cannot be resolved, and a target outside every allowed root are refused without asking.
+- Targets must be strictly below an allowed root, never the root itself.
+- Workspace-root cleanups such as `rm -rf .` and `rm -rf *` are refused. The model should name a specific subdirectory, for example `rm -rf build`, instead of clearing the workspace root.
+- A dynamic executable name alone and a non-recursive delete do not trigger this guard.
+
+### When nobody can be asked
+
+Without an interactive approver — a headless `reasonix run`, or a sub-agent whose parent cannot ask — both cases keep their original refusal, and the model is told this session cannot ask.
 
 Literal bounded cleanup can be followed by other commands. Before a recursive delete, only literal directory changes are accepted; assignments are never propagated into a claim of safety. The guard checks possible directories even if a directory change fails.
 
@@ -120,7 +137,7 @@ Output redirections and known PowerShell common parameters are accepted. A liter
 | --- | --- |
 | `shell.delete_sequence` | Split the call; earlier statements cannot establish a safe current directory. |
 | `shell.delete_nonliteral` | Use a literal path inside a granted root. |
-| `shell.destructive_target` | Choose an in-scope target below a root; protected targets remain refused. |
+| `shell.destructive_target` | Choose an in-scope target below a root, or allow the card for one delete. Protected targets, and a session with nobody to ask, stay refused. |
 | `shell.delete_option` | Use known options and supply common parameter values. |
 | `shell.syntax_error` | Correct the supplied command's syntax. |
 | `shell.parser_unavailable` | Restore the host parser and retry. |

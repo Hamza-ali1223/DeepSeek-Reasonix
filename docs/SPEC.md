@@ -1260,7 +1260,10 @@ Phase 0 confines the file-writing built-ins (`write_file`, `edit_file`,
 `multi_edit`, `move_file`) to `workspace_root` (default cwd), the Reasonix user
 config dir, plus `allow_write`: a write whose target — resolved to an absolute,
 symlink-free path so a symlinked dir or `..` cannot tunnel out — falls outside
-every root is refused, and the error is fed back to the model. Confinement is on
+every root is put to the user as a write-scope card offering this write or its
+folder; a home directory, a filesystem root, Reasonix's own storage and a
+credential directory are refused unasked, and a host with nobody to ask keeps the
+refusal and feeds the error back to the model. Confinement is on
 by default (root = cwd), so edits stay in the project while the agent can still
 update its own global config. `forbid_read` lists files or directories the agent should
 not read, list, or search; entries support `${VAR}` / `${VAR:-default}` expansion
