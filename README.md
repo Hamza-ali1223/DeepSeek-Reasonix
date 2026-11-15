@@ -6,8 +6,10 @@
 > **This is a community-maintained fork of Reasonix.** Upstream
 > ([esengine/DeepSeek-Reasonix](https://github.com/esengine/DeepSeek-Reasonix))
 > stopped maintenance on 2026-11-12 with v2.61.0, so this fork carries the project
-> forward for personal and community use. Prebuilt releases are Windows-only for now;
-> macOS and Linux builds come from source — see [This fork](#this-fork) below.
+> forward for personal and community use.
+>
+> Prebuilt releases are Windows-only for now; macOS and Linux builds come from
+> source — see [This fork](#this-fork) below.
 
 <p align="center">
   <strong>English</strong>
@@ -60,9 +62,10 @@ You pick the model: a DeepSeek preset is built in, any OpenAI-compatible service
 
 This repository is a continuation of Reasonix, maintained by
 [@Hamza-ali1223](https://github.com/Hamza-ali1223) for personal use and for anyone in
-the community who still wants the project. Upstream was discontinued abruptly by its
-author on 2026-11-12 after v2.61.0; its issues are no longer triaged and no further
-upstream releases will be made.
+the community who still wants the project.
+
+Upstream was discontinued abruptly by its author on 2026-11-12 after v2.61.0; its
+issues are no longer triaged and no further upstream releases will be made.
 
 - **The code is upstream's, as written.** Changes here are fixes and additions on top
   of it rather than a rewrite, so the guides and docs still describe what you run —
@@ -73,8 +76,9 @@ upstream releases will be made.
   portable zip, with `SHA256SUMS`.
 - **macOS and Linux come from source.** No prebuilt fork packages for those platforms
   yet. Build them with the steps under [Build from source](#build-from-source); the
-  same code produces Studio there too, and Linux webview dependencies and build tags
-  are covered in the [Studio build guide](./desktop/README.md#prerequisites).
+  same code produces Studio there too.
+- **Linux webview dependencies and build tags** are covered in the
+  [Studio build guide](./desktop/README.md#prerequisites).
 - **Versioning is separate.** Fork releases are `fork-vX.Y.Z`, never upstream's
   `studio-v*`, so the two lines cannot collide. Larger steps are marked in the pull
   request before merging.
@@ -300,11 +304,14 @@ For advanced CLI usage and configuration, see the **[CLI reference](./docs/CLI.m
 ## Acknowledgments
 
 A small list of folks whose work has shaped Reasonix the most — the current top
-20 contributors by commit count, as of the final upstream release. **These are
-the original upstream contributors:** everyone who built Reasonix before
-maintenance stopped. The contributor grid at the end of this section covers the
-repository as a whole — the same people, plus anyone who has landed work here
-since. The full contributor graph is on
+20 contributors by commit count, as of the final upstream release.
+
+**These are the original upstream contributors:** everyone who built Reasonix
+before maintenance stopped.
+
+The contributor grid at the end of this section covers the repository as a
+whole — the same people, plus anyone who has landed work here since. The full
+contributor graph is on
 [GitHub](https://github.com/esengine/DeepSeek-Reasonix/graphs/contributors?all=1).
 
 <!-- reasonix-top-contributors:start -->
