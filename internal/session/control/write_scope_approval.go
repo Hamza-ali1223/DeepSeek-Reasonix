@@ -22,16 +22,17 @@ import (
 const WriteScopeApprovalTool = "write_scope"
 
 // DeleteScopeApprovalTool is the internal Tool name used when a shell command
-// recursively deletes paths outside the workspace and its granted folders. It is
-// a fresh human decision and offers only "this command": there is no folder
-// grant, because a grant for a parent would let the next delete reach all of it.
+// recursively deletes paths outside the workspace and its granted folders; a
+// folder a write card recorded for the project is one of those folders. It is a
+// fresh human decision that offers only "this command": a folder grant would let
+// the next delete reach all of it.
 const DeleteScopeApprovalTool = "delete_scope"
 
 // ApproveWriteScope is the card a file tool puts up when a write lands outside
-// the workspace write scope; a target no approval may open is refused unasked. Three answers: this write only; this folder for the
-// rest of the session; this folder written down for this project. A wider
-// answer is honoured only for a folder that passes the vetting a stored grant
-// has to pass, whatever the frontend sent — the card never offers the others.
+// the workspace write scope; a target no approval may open is refused unasked.
+// Three answers: this write only; this folder for the session; this folder
+// recorded for the project. Whatever the frontend sent, a folder answer passes
+// the readability checks, and the project answer the extra-root checks too.
 func (m fileWriteApprover) ApproveWriteScope(ctx context.Context, req tool.WriteScopeRequest) (bool, string, error) {
 	if _, refused := config.RootsForHome("").FolderGrantRefusal(req.Path); refused {
 		return false, "", tool.ErrScopeTargetProtected
