@@ -13,9 +13,21 @@ try {
     for (const [key, value] of Object.entries({ pref: "zh", ws: "2", sess: "6", turns: "1" })) url.searchParams.set(key, value);
     if (pack !== "default") url.searchParams.set("pack", pack);
     await page.goto(url.href, { waitUntil: "networkidle" });
+    const label = `${colorScheme}/${pack}`;
+
+    // The workspace is not one of the rail's destinations, so it marks none current.
+    assert.equal(
+      await page.locator('.navbtn[aria-current="page"]').count(), 0,
+      `${label}: the workspace marks no destination as current`,
+    );
+
+    // Opening a destination is what raises the current mark, so that is the state this guard measures.
+    const name = "工具与权限";
+    await page.getByRole("button", { name, exact: true }).click();
     const current = page.locator('.navbtn[aria-current="page"]');
     await current.waitFor();
-    const label = `${colorScheme}/${pack}`;
+    assert.equal(await current.count(), 1, `${label}: one destination carries the current mark`);
+    assert.equal(await current.getAttribute("aria-label"), name, `${label}: the opened destination is the current one`);
     await page.locator(".nav").screenshot({ path: `perf/shots/nav-selection-${colorScheme}-${pack}.png` });
     const colors = await current.evaluate((button) => {
       const ink = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
@@ -48,7 +60,6 @@ try {
     assert.ok(parseFloat(colors.marker) >= 2, `${label}: a side marker also identifies the current section`);
     await current.focus();
     assert.ok(await current.evaluate((button) => parseFloat(getComputedStyle(button).outlineWidth) >= 2), `${label}: keyboard focus stays visible`);
-    assert.equal(await current.getAttribute("aria-label"), "会话");
     await page.close();
     console.log(`PASS navigation selection ${label}: quiet surface, contrast and focus`);
   }
