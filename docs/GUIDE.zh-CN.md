@@ -1001,13 +1001,20 @@ Ask 不是只读模式：writer 获得批准后仍会执行。Permissions 决定
 Sandbox 是授权之后的第二层边界，不能替代命令解析，也不能把无法证明静态安全的命令变成可自动授权命令。
 
 权限是**策略**（哪些调用放行/询问），**沙盒**是**强制**：文件写工具
-（`write_file` / `edit_file` / `multi_edit` / `move_file`）拒绝 `[sandbox] workspace_root`
-之外的任何路径（默认当前目录，编辑不出项目），并解析符号链接与 `..`，使链接无法
-打洞越界。`forbid_read` 可选地隐藏敏感文件或目录，使 agent 的读文件、列目录和搜索工具不能读取或列出它们；
-建议使用绝对路径或 `${HOME}` / `${VAR}`，不要写 `~`，因为配置只做环境变量展开。
-`bash` 本身默认进 OS 沙盒（`[sandbox] bash`：macOS 使用 Seatbelt，Linux 使用 bubblewrap）：
-命令只能写这些 root（外加平台按命令提供的临时/缓存 root），
+（`write_file` / `edit_file` / `multi_edit` / `move_file`）默认只写
+`[sandbox] workspace_root`（默认当前目录，编辑不出项目）。
+
+文件写工具会解析符号链接与 `..`，使链接无法打洞越界。目标在此之外的写入会先以
+卡片征求你的同意；家目录、文件系统根与凭据目录不经询问直接拒绝。
+
+`forbid_read` 可选地隐藏敏感文件或目录，使 agent 的读文件、列目录和搜索工具不能
+读取或列出它们；建议使用绝对路径或 `${HOME}` / `${VAR}`，不要写 `~`，因为配置只做
+环境变量展开。
+
+`bash` 本身默认进 OS 沙盒（`[sandbox] bash`：macOS 使用 Seatbelt，Linux 使用
+bubblewrap）：命令只能写这些 root（外加平台按命令提供的临时/缓存 root），
 OS 沙盒生效时也不能读取配置的 `forbid_read` roots，`[sandbox] network` 为真时才能联网。
+
 Reasonix 始终会从工具子进程环境中移除已保存的 provider 与 bot 凭据变量，并自动把
 全局凭据 `.env` 加入运行时禁读边界；项目 `.env` 仍保持现有的 workspace 范围行为。
 

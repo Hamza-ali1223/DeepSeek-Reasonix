@@ -1321,8 +1321,11 @@ Permissions are *policy* (which calls to allow / prompt). The **sandbox** is
 edits stay in the project).
 
 A target outside it comes to you as a card offering this write or its folder. A
-home directory, a filesystem root and a credential folder are refused without
-asking. The file-writers resolve symlinks and `..`, so a link can't tunnel out.
+recursive delete outside it is a card for that one command.
+
+Reasonix's own storage, a home directory, a filesystem root and a credential
+folder are refused without asking. The file-writers resolve symlinks and `..`,
+so a link can't tunnel out.
 
 `forbid_read` optionally hides sensitive files or directories from the agent's
 read/list/search tools. Use absolute paths or `${HOME}` / `${VAR}` references,

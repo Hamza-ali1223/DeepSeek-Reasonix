@@ -108,7 +108,7 @@ requirement. It still does not bypass explicit `deny` rules or the sandbox.
 
 The write scope is `[sandbox] workspace_root` (default: the current dir) plus `allow_write` and the folders you granted. A file tool writing outside it, and a shell command that recursively deletes outside it, are put to you as a card.
 
-No posture answers this card: Ask, Auto, Yolo and a remembered choice do not settle it, and it is asked fresh each time. A refused answer reaches the model as a refusal naming the reason, and the model is told not to retry it.
+No posture answers this card: Ask, Auto, Yolo and a remembered choice do not settle it. A refused answer reaches the model as a refusal naming the reason, and the model is told not to retry it.
 
 ### Writes outside the workspace
 
@@ -120,8 +120,8 @@ No posture answers this card: Ask, Auto, Yolo and a remembered choice do not set
 ### Recursive deletes outside the workspace
 
 - The card covers the command it was raised for, and nothing else. It offers no folder answer, because a grant for a parent would let the next delete reach everything in it.
-- A home directory, a filesystem root, a workspace ancestor, a path that cannot be resolved, and a target outside every allowed root are refused without asking.
-- Targets must be strictly below an allowed root, never the root itself.
+- A home directory, a filesystem root, a workspace ancestor and a path that cannot be resolved are refused without asking.
+- A target strictly inside the workspace or a granted folder is deleted without a card; the root itself is refused, never deleted.
 - Workspace-root cleanups such as `rm -rf .` and `rm -rf *` are refused. The model should name a specific subdirectory, for example `rm -rf build`, instead of clearing the workspace root.
 - A dynamic executable name alone and a non-recursive delete do not trigger this guard.
 
