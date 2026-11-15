@@ -114,7 +114,8 @@ No posture answers this card: Ask, Auto, Yolo and a remembered choice do not set
 
 - The card offers this write only, this folder for the rest of the session, or this folder recorded for the project.
 - A folder answer covers that folder and what is below it, never the whole disk, and never every tool at once.
-- A wider answer is honoured only for a folder that passes the same vetting a stored grant must pass.
+- The session answer needs the readability checks to pass, and the project answer the extra-root checks too.
+- A folder recorded for the project is one of its writable folders, so a recursive delete inside it needs no delete card (#22).
 - Reasonix's own storage, a credential directory, a home directory and a filesystem root are refused without asking.
 
 ### Recursive deletes outside the workspace
