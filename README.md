@@ -70,10 +70,13 @@ issues are no longer triaged and no further upstream releases will be made.
 - **The code is upstream's, as written.** Changes here are fixes and additions on top
   of it rather than a rewrite, so the guides and docs still describe what you run —
   the first such change is rendering `svg` fences in Studio.
-- **Windows builds ship today.** Every merge to `studio` publishes a
+- **Windows builds ship today.** A merge to `studio` publishes a
   [`fork-v*` release](https://github.com/Hamza-ali1223/DeepSeek-Reasonix/releases)
   with the CLI (`windows/amd64` and `windows/arm64`), plus the Studio installer and
   portable zip, with `SHA256SUMS`.
+- **A small change can ride the next release.** A pull request labelled
+  `release:ships-with-next-release` cuts no release of its own: it ships with the
+  next one and appears in that release's changelog.
 - **macOS and Linux come from source.** No prebuilt fork packages for those platforms
   yet. Build them with the steps under [Build from source](#build-from-source); the
   same code produces Studio there too.
@@ -81,7 +84,7 @@ issues are no longer triaged and no further upstream releases will be made.
   [Studio build guide](./desktop/README.md#prerequisites).
 - **Versioning is separate.** Fork releases are `fork-vX.Y.Z`, never upstream's
   `studio-v*`, so the two lines cannot collide. Larger steps are marked in the pull
-  request before merging.
+  request before merging; a small change can be held back with the same label line.
 - **Issues and pull requests are welcome,** though there is no promised response time.
 
 Reasonix is MIT-licensed, and this fork keeps that licence.
