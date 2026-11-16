@@ -5,6 +5,10 @@ name: Fork auto-release
 #
 # The bump is a patch by default. Label the merged PR `release:minor` or
 # `release:major` for a bigger step, or run this workflow by hand and choose.
+#
+# A pull labelled `release:ships-with-next-release` cuts no release of its own: it
+# ships with the next one and appears in that release's changelog. When one push
+# carries several pulls, the hold applies only if every one of them asks for it.
 # A push that changes only text the release does not ship is skipped.
 #
 # The tag is pushed with GITHUB_TOKEN, and a tag pushed that way never starts
@@ -48,28 +52,48 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           CHOSEN: ${{ github.event.inputs.bump }}
+          HOLD: release:ships-with-next-release
         shell: bash
         run: |
           set -euo pipefail
           bump="${CHOSEN:-}"
+          hold=false
           if [ -z "$bump" ]; then
-            labels="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" --jq '[.[].labels[].name] | join(",")' || true)"
-            echo "labels on the merged PR: ${labels:-none}"
-            case ",${labels}," in
+            pulls="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
+              --jq '[.[].labels[].name] | join(",")' || true)"
+            echo "labels on the merged pulls: ${pulls:-none}"
+            counts="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
+              --jq '"\(length) \([.[] | select([.labels[].name] | index(env.HOLD) != null)] | length)"' || true)"
+            total="${counts%% *}"
+            held="${counts##* }"
+            # Every pull in the push has to ask, so one hold never silences a
+            # release that another pull in the same push was merged for.
+            if [ "${total:-0}" -gt 0 ] && [ "${total:-0}" = "${held:-0}" ]; then hold=true; fi
+            case ",${pulls}," in
               *,release:major,*) bump=major ;;
               *,release:minor,*) bump=minor ;;
               *) bump=patch ;;
             esac
+            if [ "$hold" = true ] && [ "$bump" != "patch" ]; then
+              echo "::notice::${HOLD} and release:${bump} are both set; the hold wins and no release is cut"
+            fi
           fi
           echo "bump=${bump}" >> "$GITHUB_OUTPUT"
+          echo "hold=${hold}" >> "$GITHUB_OUTPUT"
 
       - name: Next tag
         id: next
         shell: bash
         env:
           BUMP: ${{ steps.bump.outputs.bump }}
+          HOLD: ${{ steps.bump.outputs.hold }}
         run: |
           set -euo pipefail
+          if [ "$HOLD" = "true" ]; then
+            echo "::notice::held by release:ships-with-next-release; no tag is cut here, it ships with the next release"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           git fetch --force --tags origin
           if git tag --points-at HEAD | grep -q '^fork-v'; then
             echo "::notice::HEAD is already tagged ($(git tag --points-at HEAD | grep '^fork-v' | head -1)); nothing to release"
