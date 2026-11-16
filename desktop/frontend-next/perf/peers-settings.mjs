@@ -40,12 +40,12 @@ for (const scheme of ["light", "dark"]) {
     await page.waitForSelector('[data-action="settings.section"][data-value="tools"]');
     await section("session");
     await page.waitForTimeout(300);
-    check(`${tag}: session messages have a settings entry of their own`, (await page.locator('[data-action="settings.page-index"][data-target="peers"]').count()) === 1);
+    check(`${tag}: session messages have a settings entry of their own`, (await page.locator('[role="switch"][aria-label="启用会话间消息"]').count()) === 1);
     await section("tools");
     await page.waitForTimeout(300);
     check(`${tag}: and no longer sit at the foot of tools and permissions`, (await page.locator('[role="switch"][aria-label="启用会话间消息"]').count()) === 0);
     await section("session");
-    await page.locator('[data-action="settings.page-index"][data-target="peers"]').click();
+    await page.locator('[data-action="settings.page-index"][data-target="session-ref"]').click();
     await page.waitForSelector('[role="switch"][aria-label="启用会话间消息"]', { timeout: 8000 });
     const s = await page.evaluate(() => {
       const sw = (n) => document.querySelector(`[role="switch"][aria-label="${n}"]`);
@@ -60,8 +60,10 @@ for (const scheme of ["light", "dark"]) {
         pending: document.body.textContent.includes("下个回合起生效"),
         immediate: /立即生效/.test(box.textContent),
         path: box.textContent.includes("/Users/you/.reasonix/config.toml"),
-        spill: box.scrollWidth - box.clientWidth,
-        within: [...box.querySelectorAll("li, .lrow, .peerhead")].every((e) => e.getBoundingClientRect().right <= r.right + 1),
+        // scrollWidth counts the switch's invisible hit target; only elements can be seen.
+        spill: Math.max(0, ...[...box.querySelectorAll("*")]
+          .filter((e) => e.getClientRects().length)
+          .map((e) => Math.ceil(e.getBoundingClientRect().right - r.right))),
       };
     });
     check(`${tag}: the switch is on the page`, s.enabled === "true");
@@ -69,7 +71,7 @@ for (const scheme of ["light", "dark"]) {
     check(`${tag}: released projects are listed with a revoke each`, s.released.length === 2 && s.revoke.length === 2 && s.revoke.every((l) => l.startsWith("撤销放行")), s.revoke.join("|"));
     check(`${tag}: a saved switch says the next turn, never at once`, s.pending && !s.immediate);
     check(`${tag}: the file the switches live in is named`, s.path);
-    check(`${tag}: nothing spills out of the box`, s.within && s.spill <= 1, `${s.spill}px`);
+    check(`${tag}: nothing spills out of the box`, s.spill <= 1, `${s.spill}px`);
     const pick = page.getByRole("combobox", { name: "放行这个项目" });
     const options = await pick.locator("option").count();
     check(`${tag}: a project can be chosen from those already added`, options >= 1, `${options} choices`);
