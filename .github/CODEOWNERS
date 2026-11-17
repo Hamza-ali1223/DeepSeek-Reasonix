@@ -16,6 +16,9 @@
 /README.zh-CN.md                          @SivanCola @esengine
 /SECURITY.md                              @SivanCola @esengine
 
+# Fork-only maintainer documents: facts true of this fork alone.
+/docs/fork_docs/                          @Hamza-ali1223 @SivanCola
+
 # Contracts and processes the Studio line runs on.
 /docs/DOCS_STANDARD.md                    @esengine @SivanCola
 /docs/STUDIO_*.md                         @esengine @SivanCola
