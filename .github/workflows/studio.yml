@@ -137,6 +137,7 @@ jobs:
           for _ in $(seq 30); do curl -sf http://localhost:4399/perf.html >/dev/null && break; sleep 1; done
           node perf/intrinsic.mjs
           node perf/firstscreen-fonts.mjs
+          node perf/curly-punctuation.mjs
           node perf/contrast.mjs
           node perf/stickyfold.mjs
           node perf/crumb.mjs
