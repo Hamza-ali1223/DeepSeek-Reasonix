@@ -5,6 +5,18 @@ The stylesheet itself carries no commentary, so the constraints behind its
 values live here. Each entry states what holds now; where a gate enforces it,
 the gate is named.
 
+## Studio punctuation
+
+Inter Studio supplies ASCII and curly quotation marks (`U+2018–U+201F`) at
+weights 400, 500 and 600. Latin contractions use narrow Inter punctuation;
+Chinese characters retain the Noto fallback. `perf/curly-punctuation.mjs`
+checks these widths with the shipped stylesheets, including after reload.
+
+Add or refresh these glyphs from the bundled `InterVariable.woff2` with
+`python tools/subset-studio-fonts.py` from `desktop/frontend-next`.
+Existing ASCII outlines and metrics are preserved. The script requires
+Python's `fontTools` with WOFF2 support.
+
 ## Registered properties
 
 - `--rail-w` / `--side-w` are registered as `<length>` so collapsing a column
