@@ -43,13 +43,13 @@ export function DiagramFrame({ kind, label, copyLabel, failedLabel, pendingLabel
           {src && (
             <>
               <button type="button" className="code-act" data-action="diagram.zoom" data-value="out" aria-label={t("chat.zoom_out")} title={t("chat.zoom_out")} onClick={() => view.zoom(0.8)}><StudioIcon name="zoomOut" /></button>
-              <button type="button" className="diagram-mode diagram-level" data-action="diagram.zoom-reset" aria-label={t("恢复原始大小")} title={t("恢复原始大小")} onClick={view.reset}>{Math.round(view.scale * 100)}%</button>
+              <button type="button" className="diagram-mode diagram-level" data-action="diagram.zoom-reset" aria-label={t("chat.diagram_reset")} title={t("chat.diagram_reset")} onClick={view.reset}>{Math.round(view.scale * 100)}%</button>
               <button type="button" className="code-act" data-action="diagram.zoom" data-value="in" aria-label={t("chat.zoom_in")} title={t("chat.zoom_in")} onClick={() => view.zoom(1.25)}><StudioIcon name="zoomIn" /></button>
-              <button type="button" className="code-act" data-action="diagram.fullscreen" aria-label={t("全屏查看")} title={t("全屏查看")} onClick={() => setFull(true)}><StudioIcon name="expand" /></button>
+              <button type="button" className="code-act" data-action="diagram.fullscreen" aria-label={t("chat.diagram_fullscreen")} title={t("chat.diagram_fullscreen")} onClick={() => setFull(true)}><StudioIcon name="expand" /></button>
             </>
           )}
-          <button type="button" className="diagram-mode" data-action="diagram.preview" aria-pressed={!showSource} onClick={() => choose("preview")}>{t("预览")}</button>
-          <button type="button" className="diagram-mode" data-action="diagram.source" aria-pressed={!!showSource} onClick={() => choose("source")}>{t("源代码")}</button>
+          <button type="button" className="diagram-mode" data-action="diagram.preview" aria-pressed={!showSource} onClick={() => choose("preview")}>{t("chat.diagram_preview")}</button>
+          <button type="button" className="diagram-mode" data-action="diagram.source" aria-pressed={!!showSource} onClick={() => choose("source")}>{t("chat.diagram_source")}</button>
           {!live && <CopyButton text={source} iconOnly className="code-act" label={copyLabel} />}
         </span>
       </div>
@@ -87,7 +87,7 @@ function DiagramPicture({ src, label, view }: { src: string; label: string; view
     <div
       ref={box}
       className="diagram-preview"
-      title={t("Ctrl + 滚轮缩放 · 拖动平移 · 双击复原")}
+      title={t("chat.diagram_controls")}
       data-action-pointerdown="diagram.pan"
       data-action-pointermove="diagram.pan"
       data-action-pointerup="diagram.pan"

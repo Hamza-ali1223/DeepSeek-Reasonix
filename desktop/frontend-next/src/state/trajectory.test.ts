@@ -1,6 +1,8 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 import { initialTraj, reduceTraj, type Span, type TrajState } from "./trajectory";
 import type { WireEvent } from "../port/wire";
+import { boot, STORAGE } from "../i18n";
 
 const run = (evs: WireEvent[]): TrajState => evs.reduce((s, e) => reduceTraj(s, e), initialTraj);
 const flat = (spans: Span[]) => spans.map((x) => ("b" in x ? x.b : "n" in x ? x.n : x.t)).join("");
@@ -27,6 +29,28 @@ const usage = (attemptId?: string, source?: string): WireEvent =>
       source,
     },
   }) as WireEvent;
+
+it("localizes question and compaction counts in both languages", () => {
+  const events = [
+    { kind: "ask_request", ask: { questions: [{}, {}] } },
+    { kind: "compaction_done", compaction: { messages: 3 } },
+  ] as WireEvent[];
+  try {
+    localStorage.setItem(STORAGE, "en");
+    boot();
+    const en = run(events);
+    expect(line(en, 0)).toContain("2 questions");
+    expect(line(en, 1)).toContain("3 messages");
+    localStorage.setItem(STORAGE, "zh");
+    boot();
+    const zh = run(events);
+    expect(line(zh, 0)).toContain("2 个问题");
+    expect(line(zh, 1)).toContain("3 条");
+  } finally {
+    localStorage.setItem(STORAGE, "zh");
+    boot();
+  }
+});
 
 describe("a round's tokens land on the round", () => {
   // Usage is emitted after the round it belongs to has committed. Attaching it

@@ -109,8 +109,8 @@ function ModHostBlock({ port }: { port: AgentPort }) {
             </div>
             {m.code && <div className="ds">{say({ code: m.code, error: m.detail })}</div>}
             {m.restarts > 0 && <div className="ds">{t("ext.restarted_n_times", { n: m.restarts })}</div>}
-            {!!m.events?.length && <div className="ds">{t("ext.events_it_registered")}：{m.events.join("、")}</div>}
-            {!!m.unserved?.length && <div className="ds">{t("ext.events_this_app_never_raises_2")}：{m.unserved.join("、")}</div>}
+            {!!m.events?.length && <div className="ds">{t("ext.events_it_registered")}：{m.events.join(t("common.list_separator"))}</div>}
+            {!!m.unserved?.length && <div className="ds">{t("ext.events_this_app_never_raises_2")}：{m.unserved.join(t("common.list_separator"))}</div>}
           </li>
         ))}
         {mods && mods.length === 0 && <li className="ds">{t("ext.no_installed_package_carries_a")}</li>}

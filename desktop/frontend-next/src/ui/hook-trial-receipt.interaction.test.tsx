@@ -6,6 +6,7 @@ import "./testkit";
 import { Hooks } from "./Hooks";
 import { MockPort } from "../port/mock";
 import type { AgentPort, HookDryRun } from "../port/port";
+import { boot, STORAGE } from "../i18n";
 
 afterEach(cleanup);
 
@@ -53,6 +54,33 @@ async function complete(index = 0) {
   await userEvent.click(run(index));
   await waitFor(() => expect(receipt(index)).toBeTruthy());
 }
+
+it("describes a non-blocking timeout as a warning", async () => {
+  const { result, trial } = await fixture();
+  trial.mockResolvedValueOnce({ ...result, decision: "warn", blocks: false, timedOut: true });
+  await complete();
+  expect(receipt()?.textContent).toContain("超时，只会提醒");
+});
+
+it("does not describe a failed hook execution as allowed", async () => {
+  const { result, trial } = await fixture();
+  trial.mockResolvedValueOnce({ ...result, decision: "error", blocks: false, timedOut: false });
+  await complete();
+  expect(receipt()?.textContent).toContain("未能运行");
+});
+
+it("translates the trial verdict in English", async () => {
+  await fixture();
+  try {
+    localStorage.setItem(STORAGE, "en");
+    boot();
+    await complete();
+    expect(receipt()?.textContent).toContain("Would block this step");
+  } finally {
+    localStorage.setItem(STORAGE, "zh");
+    boot();
+  }
+});
 
 it.each(["command", "event", "match"] as const)("hides a completed receipt after its %s changes", async (field) => {
   const { trial, rules } = await fixture();

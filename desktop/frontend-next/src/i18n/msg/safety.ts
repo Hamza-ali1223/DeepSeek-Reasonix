@@ -1,6 +1,10 @@
 import type { Messages } from "./types";
 
 export const SAFETY: Messages = {
+  "safety.computer_grant_label": { zh: "操作应用（逐个应用授权）", en: "Operate applications (authorized per application)" },
+  "safety.browser_grant_label": { zh: "浏览器（逐个来源授权）", en: "Browser (authorized per origin)" },
+  "safety.computer_matching": { zh: "比对应用 id，放行必须写全；通配符只拦不放", en: "Matches application ID; allows require an exact ID, wildcards only block" },
+  "safety.browser_matching": { zh: "比对页面来源（协议://主机:端口）", en: "Matches page origin (scheme://host:port)" },
   "safety.a_match_is_final_it": { zh: "命中即终止：全部放行下同样拦截，不显示审批框", en: "A match is final: it holds under full access, and no approval box appears" },
   "safety.a_match_stops_asking": { zh: "命中后不再请求确认", en: "A match stops asking" },
   "safety.a_match_stops_for_you": { zh: "命中即暂停并请求确认，即使已开启自动批准", en: "A match stops for you, even with auto-approval on" },

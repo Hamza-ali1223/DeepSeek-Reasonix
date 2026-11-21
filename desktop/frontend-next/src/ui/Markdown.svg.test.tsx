@@ -4,6 +4,7 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "./testkit";
 import { Markdown } from "./Markdown";
+import { boot, STORAGE } from "../i18n";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const fence = (s: string) => "```svg\n" + s + "```";
@@ -30,6 +31,23 @@ it("routes only SVG fences to an image preview and keeps source and copy availab
   expect(screen.getByRole("img", { name: "SVG 图片" })).toBeTruthy();
   expect(container.querySelector('.code-wrap[data-lang="go"] .code-tx')?.textContent).toBe("func main() {}");
   expect(container.querySelector("strong")?.textContent).toBe("Next paragraph");
+});
+
+it("renders the diagram controls in English", async () => {
+  localStorage.setItem(STORAGE, "en");
+  boot();
+  try {
+    const user = userEvent.setup();
+    render(<Markdown text={fence(circle)} />);
+    expect(screen.getByRole("img", { name: "SVG image" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Source" }));
+    expect(screen.getByRole("button", { name: "Copy SVG source" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Preview" }));
+    expect(screen.getByRole("button", { name: "View full screen" })).toBeTruthy();
+  } finally {
+    localStorage.setItem(STORAGE, "zh");
+    boot();
+  }
 });
 
 it("draws only an inert picture: scripts, handlers, HTML and remote loads never survive", () => {

@@ -1,6 +1,8 @@
 import type { Messages } from "./types";
 
 export const MODELS: Messages = {
+  "models.proxy_manual_description": { zh: "手动指定代理服务器", en: "Specify a proxy server manually" },
+  "models.proxy_direct_description": { zh: "不使用任何代理", en: "Do not use a proxy" },
   "models.a_blank_field_follows_the": { zh: "留空的模型沿用上面的值，灰字是它当前继承到的值；填写后只对该模型生效。", en: "A blank field follows the values above; the grey text is what that model inherits now. A value applies to that model only." },
   "models.a_saved_change_reaches_only": { zh: "保存后只对之后新开的窗格生效，已开的窗格沿用旧设置。这些设置写在用户配置文件里：", en: "A saved change reaches only panes opened afterwards; open panes keep the old settings. These settings are kept in the user config file: " },
   "models.a_search_service_you_run": { zh: "你自己部署的搜索服务，免费，需要填它的地址。", en: "A search service you run yourself; free, and it needs its address." },

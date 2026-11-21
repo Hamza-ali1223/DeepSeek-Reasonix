@@ -10,6 +10,7 @@ import { MockPort } from "../port/mock";
 import { HttpError } from "../port/port";
 import type { ModStatus } from "../port/port";
 import type { AgentPort } from "../port/port";
+import { boot, STORAGE } from "../i18n";
 
 afterEach(cleanup);
 
@@ -52,6 +53,22 @@ describe("the Claude Code mod block", () => {
     expect(within(row("git-guard")).getByText(/本应用不会触发这些事件.*tool\.rewrite/)).toBeTruthy();
     expect(within(row("prompt-tweaks")).getByText(/正在重启/)).toBeTruthy();
     expect(within(row("fancy-notes")).getByText(/找不到能运行 mod 的 Node 运行时/)).toBeTruthy();
+  });
+
+  it("uses an English list separator for mod events", async () => {
+    localStorage.setItem(STORAGE, "en");
+    boot();
+    try {
+      const port = new MockPort();
+      vi.spyOn(port, "mods").mockResolvedValue([{ plugin: "example", state: "disabled", code: "mod.crashed", restarts: 0, events: ["event.one", "event.two"], unserved: ["event.three", "event.four"] }]);
+      render(<ModHost port={port} shown />);
+      expect(await screen.findByText(/event\.one, event\.two/)).toBeTruthy();
+      expect(screen.getByText(/event\.three, event\.four/)).toBeTruthy();
+    } finally {
+      cleanup();
+      localStorage.setItem(STORAGE, "zh");
+      boot();
+    }
   });
 
   it("words a state by its code, never by what the detail says", async () => {
