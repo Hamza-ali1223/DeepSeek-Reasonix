@@ -1,6 +1,10 @@
 import type { Messages } from "./types";
 
 export const COMMON: Messages = {
+  "common.list_separator": { zh: "、", en: ", " },
+  "common.model_currency": { zh: "{model}（{currency}）", en: "{model} ({currency})" },
+  "common.action_count": { zh: "{action}（{n}）", en: "{action} ({n})" },
+  "common.size_share": { zh: "{size}（{share}）", en: "{size} ({share})" },
   "common.actually_in_force": { zh: "实际生效", en: "Actually in force" },
   "common.add": { zh: "添加", en: "Add" },
   "common.add_a_rule": { zh: "添加规则", en: "Add a rule" },

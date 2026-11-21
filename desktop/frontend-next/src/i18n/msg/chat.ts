@@ -1,6 +1,23 @@
 import type { Messages } from "./types";
 
 export const CHAT: Messages = {
+  "chat.trajectory_question": { zh: " 个问题", en: " question" },
+  "chat.trajectory_questions": { zh: " 个问题", en: " questions" },
+  "chat.trajectory_message": { zh: " 条", en: " message" },
+  "chat.trajectory_messages": { zh: " 条", en: " messages" },
+  "chat.diagram_reset": { zh: "恢复原始大小", en: "Reset to original size" },
+  "chat.diagram_fullscreen": { zh: "全屏查看", en: "View full screen" },
+  "chat.diagram_preview": { zh: "预览", en: "Preview" },
+  "chat.diagram_source": { zh: "源代码", en: "Source" },
+  "chat.diagram_controls": { zh: "Ctrl + 滚轮缩放 · 拖动平移 · 双击复原", en: "Ctrl + scroll to zoom · drag to pan · double-click to reset" },
+  "chat.mermaid_diagram": { zh: "Mermaid 图表", en: "Mermaid diagram" },
+  "chat.mermaid_copy_source": { zh: "复制 Mermaid 源代码", en: "Copy Mermaid source" },
+  "chat.mermaid_render_failed": { zh: "Mermaid 渲染失败", en: "Mermaid rendering failed" },
+  "chat.mermaid_rendering": { zh: "正在渲染 Mermaid 图表…", en: "Rendering Mermaid diagram…" },
+  "chat.svg_source_limit": { zh: "源代码超过 {n} 个字符", en: "Source exceeds {n} characters" },
+  "chat.svg_image": { zh: "SVG 图片", en: "SVG image" },
+  "chat.svg_copy_source": { zh: "复制 SVG 源代码", en: "Copy SVG source" },
+  "chat.svg_preview_failed": { zh: "SVG 预览失败", en: "SVG preview failed" },
   "chat.a_file_outside_this_subtasks": { zh: "这个子任务声明之外的文件", en: "A file outside this subtask's declared paths" },
   "chat.a_file_outside_the_workspace": { zh: "工作区之外的文件", en: "A file outside the workspace" },
   "chat.a_run_of_tool_calls": { zh: "一轮中连续的工具调用，收起后只剩一行摘要", en: "A run of tool calls within a turn; folded, it is a one-line summary" },

@@ -28,10 +28,10 @@ export function MermaidDiagram({ source, live }: { source: string; live?: boolea
   return (
     <DiagramFrame
       kind="mermaid"
-      label={t("Mermaid 图表")}
-      copyLabel={t("复制 Mermaid 源代码")}
-      failedLabel={t("Mermaid 渲染失败")}
-      pendingLabel={t("正在渲染 Mermaid 图表…")}
+      label={t("chat.mermaid_diagram")}
+      copyLabel={t("chat.mermaid_copy_source")}
+      failedLabel={t("chat.mermaid_render_failed")}
+      pendingLabel={t("chat.mermaid_rendering")}
       source={source}
       live={live}
       picture={current}

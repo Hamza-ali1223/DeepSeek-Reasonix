@@ -6,6 +6,7 @@ import { SlottedView } from "./SlottedView";
 import { placement } from "./slots";
 import { ExtensionCard } from "./cards/ExtensionCard";
 import type { ExtensionSurface, ExtensionViewNode } from "../port/wire";
+import { boot, STORAGE } from "../i18n";
 
 afterEach(cleanup);
 
@@ -43,6 +44,21 @@ describe("the band a mod draws above the prompt", () => {
     fireEvent.click(await screen.findByText("approve_all"));
     fireEvent.click(await screen.findByText("No action"));
     expect(onAction.mock.calls).toEqual([]);
+  });
+
+  it("localizes placement choices in English", () => {
+    localStorage.setItem(STORAGE, "en");
+    boot();
+    try {
+      const onMove = vi.fn();
+      render(<SlottedView ext={band([])} onAction={() => {}} onMove={onMove} />);
+      fireEvent.click(screen.getByRole("button", { name: /Move.*view/ }));
+      fireEvent.click(screen.getByRole("menuitemradio", { name: "Sidebar" }));
+      expect(onMove).toHaveBeenCalledWith("sidebar");
+    } finally {
+      localStorage.setItem(STORAGE, "zh");
+      boot();
+    }
   });
 
   it("names the plugin on the control that moves it", () => {

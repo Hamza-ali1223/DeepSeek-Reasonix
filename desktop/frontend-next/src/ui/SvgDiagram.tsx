@@ -21,7 +21,7 @@ function useReducedMotion(): boolean {
 
 function pictureOf(source: string, motion: boolean): Picture {
   if (source.length > DIAGRAM_SOURCE_LIMIT) {
-    return { error: t("源代码超过 {n} 个字符", { n: DIAGRAM_SOURCE_LIMIT.toLocaleString("en-US") }) };
+    return { error: t("chat.svg_source_limit", { n: DIAGRAM_SOURCE_LIMIT.toLocaleString("en-US") }) };
   }
   try {
     return { svg: sanitizeInertSvg(source, { motion, localReferences: true }) };
@@ -38,9 +38,9 @@ export function SvgDiagram({ source, live }: { source: string; live?: boolean })
   return (
     <DiagramFrame
       kind="svg"
-      label={t("SVG 图片")}
-      copyLabel={t("复制 SVG 源代码")}
-      failedLabel={t("SVG 预览失败")}
+      label={t("chat.svg_image")}
+      copyLabel={t("chat.svg_copy_source")}
+      failedLabel={t("chat.svg_preview_failed")}
       source={source}
       live={live}
       picture={picture}
