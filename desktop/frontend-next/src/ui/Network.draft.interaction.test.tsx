@@ -6,6 +6,7 @@ import "./testkit";
 import { Network } from "./Network";
 import { MockPort } from "../port/mock";
 import type { NetworkSettings } from "../port/port";
+import { boot, STORAGE } from "../i18n";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
@@ -30,6 +31,21 @@ function portWith(settings: NetworkSettings = initial) {
 }
 
 const save = () => screen.getByRole<HTMLButtonElement>("button", { name: "保存" });
+
+it("localizes proxy mode descriptions in English", async () => {
+  localStorage.setItem(STORAGE, "en");
+  boot();
+  try {
+    render(<Network port={portWith()} />);
+    expect(await screen.findByText("Specify a proxy server manually")).toBeTruthy();
+    await userEvent.click(screen.getByRole("radio", { name: "Direct" }));
+    expect(screen.getByText("Do not use a proxy")).toBeTruthy();
+  } finally {
+    cleanup();
+    localStorage.setItem(STORAGE, "zh");
+    boot();
+  }
+});
 
 it("disables saving again when edits are reverted", async () => {
   const port = portWith();

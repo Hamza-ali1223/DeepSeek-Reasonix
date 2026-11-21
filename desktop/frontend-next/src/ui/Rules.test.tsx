@@ -6,6 +6,7 @@ import "./testkit";
 import { Rules } from "./Rules";
 import { MockPort } from "../port/mock";
 import type { AgentPort, PermissionRules } from "../port/port";
+import { boot, STORAGE } from "../i18n";
 
 afterEach(cleanup);
 
@@ -22,6 +23,23 @@ function draw(granted: string[], revoke = vi.fn(async () => rules([]))) {
   render(<Rules port={port} onChanged={vi.fn()} />);
   return { revoke };
 }
+
+it("localizes computer and browser rule descriptions in English", async () => {
+  localStorage.setItem(STORAGE, "en");
+  boot();
+  try {
+    const port = { ...(new MockPort() as unknown as AgentPort), permissions: async () => ({ ...rules([]), allow: ["Computer(com.example.Notes)", "Browser(https://example.com)"] }) } as unknown as AgentPort;
+    render(<Rules port={port} onChanged={vi.fn()} />);
+    expect(await screen.findByText("Operate applications (authorized per application)")).toBeTruthy();
+    expect(screen.getByText("Browser (authorized per origin)")).toBeTruthy();
+    expect(screen.getByText("Matches application ID; allows require an exact ID, wildcards only block")).toBeTruthy();
+    expect(screen.getByText("Matches page origin (scheme://host:port)")).toBeTruthy();
+  } finally {
+    cleanup();
+    localStorage.setItem(STORAGE, "zh");
+    boot();
+  }
+});
 
 // "Allow for this session" is written down nowhere, so the file on screen is
 // less than the agent may currently do — and before this there was no way back

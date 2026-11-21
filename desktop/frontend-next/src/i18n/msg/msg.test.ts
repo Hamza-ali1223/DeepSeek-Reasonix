@@ -12,6 +12,7 @@ const WORDING = import.meta.glob(["../*.ts", "!../en*.ts", "!../*.test.ts"], { q
 const TABLES = import.meta.glob(["./*.ts", "!./*.test.ts", "!./index.ts", "!./types.ts"], { query: "?raw", import: "default", eager: true }) as Record<string, string>;
 
 const HAN = /[一-鿿]/;
+const LEGACY_WORDING = /[\u3001-\u303f\u4e00-\u9fff\uff00-\uffef]/;
 const holes = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
 /** The string literals a t()/tx()/plural() call is keyed by: those at its own
@@ -50,6 +51,11 @@ const asked = new Map<string, string>();
 for (const [file, body] of Object.entries(SOURCES)) for (const lit of literalsIn(body)) if (KEY.test(lit)) asked.set(lit, file);
 
 describe("the message tables", () => {
+  it("uses message IDs instead of Chinese wording in translation calls", () => {
+    const legacy = Object.entries(SOURCES).flatMap(([file, body]) =>
+      literalsIn(body).filter((key) => LEGACY_WORDING.test(key)).map((key) => `${JSON.stringify(key)} — ${file}`));
+    expect(legacy, "translation calls using Chinese wording").toEqual([]);
+  });
   it("name every message as area.meaning, in the table of its area", () => {
     const wrong = Object.entries(AREAS).flatMap(([area, table]) =>
       Object.keys(table).filter((key) => !KEY.test(key) || key.split(".")[0] !== area).map((key) => `${area}: ${key}`));

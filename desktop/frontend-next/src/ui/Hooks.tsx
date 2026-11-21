@@ -316,17 +316,19 @@ function Expert({
 // only printed "exit 2" would leave the user exactly as unsure as before.
 function DryRun({ res, blocking }: { res: HookDryRun; blocking: boolean }) {
   const verdict = res.timedOut
-    ? "ext.timed_out_this_step_counts"
+    ? res.decision === "block" ? "ext.timed_out_this_step_counts" : "ext.hook_timeout_warning"
     : res.blocks
-      ? "这一次它会挡住这一步"
+      ? "ext.hook_would_block"
       : res.decision === "block" && !blocking
-        ? "这个事件挡不住东西，只会提醒你"
-        : res.decision === "warn"
-          ? "会作为提醒显示出来"
-          : "将放行";
+        ? "ext.hook_cannot_block"
+        : res.decision === "error"
+          ? "ext.hook_could_not_run"
+          : res.decision === "warn"
+            ? "ext.hook_would_warn"
+            : "ext.hook_would_allow";
   return (
     <span className="dryrun" data-blocks={res.blocks ? "" : undefined}>
-      <b>{verdict}</b>
+      <b>{t(verdict)}</b>
       <span className="meta">
         exit {res.exitCode} · {res.durationMs}ms
       </span>

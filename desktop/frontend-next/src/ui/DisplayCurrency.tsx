@@ -48,7 +48,7 @@ export function DisplayCurrency({ port, onChanged, bare }: { port: AgentPort; on
       {state.mode !== "auto" && state.unconverted.length > 0 && (
         <div className="why">
           {t("usage.these_models_prices_are_not", {
-            models: state.unconverted.map((u) => t("{model}（{currency}）", { model: u.model, currency: u.currency })).join(t("、")),
+            models: state.unconverted.map((u) => t("common.model_currency", { model: u.model, currency: u.currency })).join(t("common.list_separator")),
           })}
         </div>
       )}

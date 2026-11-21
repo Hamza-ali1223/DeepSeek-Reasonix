@@ -1,6 +1,14 @@
 import type { Messages } from "./types";
 
 export const EXT: Messages = {
+  "ext.slot_sidebar": { zh: "侧栏", en: "Sidebar" },
+  "ext.slot_above_composer": { zh: "输入框上方", en: "Above the composer" },
+  "ext.hook_would_block": { zh: "这一次它会挡住这一步", en: "Would block this step" },
+  "ext.hook_cannot_block": { zh: "这个事件挡不住东西，只会提醒你", en: "This event cannot block; it only warns you" },
+  "ext.hook_would_warn": { zh: "会作为提醒显示出来", en: "Would show as a warning" },
+  "ext.hook_timeout_warning": { zh: "超时，只会提醒", en: "Timed out; this event only warns" },
+  "ext.hook_could_not_run": { zh: "未能运行或评估此钩子", en: "Could not run or evaluate this hook" },
+  "ext.hook_would_allow": { zh: "将放行", en: "Would allow" },
   "ext.a_block_of_json_a": { zh: "一段 JSON、一行命令，或一个 https 地址", en: "A block of JSON, a command line, or an https address" },
   "ext.a_github_directory_pinned_to": { zh: "固定到提交的 GitHub 目录，形如 https://github.com/owner/repo/tree/（40 位提交号）/子目录", en: "A GitHub directory pinned to a commit, such as https://github.com/owner/repo/tree/(40-character commit)/subdir" },
   "ext.a_hook": { zh: "一条钩子", en: "a hook" },

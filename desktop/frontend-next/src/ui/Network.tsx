@@ -8,8 +8,8 @@ import { reason, say } from "../i18n/kernel";
 // http_proxy or https_proxy — it is "use what the system uses" or "here is mine".
 const MODES: [string, string, string][] = [
   ["auto", "look.follow_the_system", "models.uses_whatever_proxy_the_system"],
-  ["custom", "models.set_manually", "手动指定代理服务器"],
-  ["off", "models.direct", "不使用任何代理"],
+  ["custom", "models.set_manually", "models.proxy_manual_description"],
+  ["off", "models.direct", "models.proxy_direct_description"],
 ];
 
 const STEP_LABEL: Record<string, string> = {

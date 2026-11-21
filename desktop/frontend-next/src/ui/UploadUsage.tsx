@@ -38,7 +38,7 @@ export function UploadUsage({ port }: { port: Pick<AgentPort, "uploadUsage"> }) 
           {report.providers.map((p) => (
             <div className="lrow" key={p.provider}>
               <span className="ds">{p.provider}</span>
-              <span className="sc">{t("{size}（{share}）", { size: bytes(p.bytes), share: pct(p.percent / 100) })}</span>
+              <span className="sc">{t("common.size_share", { size: bytes(p.bytes), share: pct(p.percent / 100) })}</span>
             </div>
           ))}
         </>
