@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"reasonix/internal/base/nilutil"
@@ -11,11 +12,11 @@ import (
 	"reasonix/internal/contract/planmode"
 	"reasonix/internal/contract/provider"
 	"reasonix/internal/contract/tool"
-	"reasonix/internal/runtime/plancontract"
 	"reasonix/internal/runtime/agent"
+	"reasonix/internal/runtime/plancontract"
 	"reasonix/internal/safety/sandbox"
-)
 	"reasonix/internal/state/sessionstore"
+)
 
 // DefaultPlannerPrompt steers the planner toward concise plans, not execution.
 const DefaultPlannerPrompt = `You are the planner in a two-model coding agent.
@@ -109,6 +110,8 @@ type Coordinator struct {
 	// behavior used by direct Coordinator callers.
 	plannerPolicy       agent.PlannerPolicy
 	plannerPlanApprover agent.PlannerPlanApprover
+	consultMu           sync.Mutex
+	consultLimit        int
 	owed                owedOutcomes // executor runs the planner has not been shown
 }
 
@@ -165,6 +168,7 @@ func newCoordinator(planner provider.Provider, plannerSession *sessionstore.Sess
 		temperature:     temperature,
 		sink:            sink,
 		plannerPolicy:   policy,
+		consultLimit:    1,
 	}
 }
 
@@ -322,6 +326,7 @@ func (c *Coordinator) SetPlannerPlanApprover(g agent.PlannerPlanApprover) {
 // Run plans with the planner model, then hands the plan to the executor.
 func (c *Coordinator) Run(ctx context.Context, input string) error {
 	ctx = c.executor.PrepareRootTaskBudget(ctx)
+	ctx = context.WithValue(ctx, consultationTurnKey{}, &consultationTurn{})
 	// A host that announced this turn owns its boundary; opening a second one
 	// here would make planner work and executor work two turns to every sink
 	// that resets on a start.
@@ -410,6 +415,12 @@ func (c *Coordinator) deliverPlan(ctx context.Context, input string, outcome pla
 	}
 	runExecutorWithPlan := func(ctx context.Context, planText string) error {
 		if outcome.exit == plannerExitPlan {
+			if outcome.plan.ID == "" {
+				outcome.plan.ID = plancontract.NewID()
+			}
+			if outcome.plan.Revision < 1 {
+				outcome.plan.Revision = 1
+			}
 			c.executor.SetPlanContract(&outcome.plan)
 		}
 		phase := event.Event{Kind: event.Phase, Text: c.executor.ProviderName() + " · executing", Source: event.UsageSourceExecutor, ModelRef: c.executor.ModelRef()}
@@ -586,6 +597,7 @@ func (c *Coordinator) planFromStream(ctx context.Context, input string) (string,
 func (c *Coordinator) planWithTools(ctx context.Context, input string) (plannerOutcome, error) {
 	before := c.plannerSess.Snapshot()
 	rewriteBefore := c.plannerSess.RewriteVersion()
+	ctx = agent.WithHostTurnBoundary(ctx, agent.HostTurnBoundary{})
 	ctx, submission := agent.WithPlanSubmission(agent.WithoutRunTimeSink(ctx))
 	if err := c.plannerAgent.Run(ctx, input); err != nil {
 		// Mirror plan()'s rollback: Run already appended the user message
@@ -597,7 +609,6 @@ func (c *Coordinator) planWithTools(ctx context.Context, input string) (plannerO
 		// turn would leave a tool-call tail that the next provider request
 		// cannot safely resume.
 		c.rollbackPlannerTurn(before, rewriteBefore)
-	ctx = agent.WithHostTurnBoundary(ctx, agent.HostTurnBoundary{})
 		return plannerOutcome{}, err
 	}
 	// A submitted plan is the contract, whatever the planner said afterwards.
