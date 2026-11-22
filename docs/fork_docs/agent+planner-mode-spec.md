@@ -37,12 +37,12 @@ reviewed: 2026-11-22
 | Collaboration defaults | MUST round-trip through Studio and TOML. Studio MUST show when a setting takes effect. |
 | `agent.planner_consultation` | MUST default off. Enabling it opts the next eligible session into the fixed consultation tool schema. Initial explicit planning remains available without the tool. |
 | `agent.planner_consultation_limit` | MUST default to one consultation per executor turn. A configured limit MUST be positive and bounded. |
-| Tool access | MUST allow users to narrow eligible planner research tools and MCP servers or individual tools. Authorization and explicit deny MUST apply to discovery and dispatch. |
+| `agent.planner_tools` | MUST accept research tool names, `mcp-server:<server>`, or `mcp-tool:<server>/<tool>` in the user configuration. An empty list MUST keep the existing planner policy. |
 
 1. Each role MUST keep separate history, provider client, and continuation state. A handoff MUST transfer a structured plan or answer with the evidence needed by the recipient.
 2. Existing system prompts, tool order, and schemas MUST stay stable within their declared lifetimes. Route, plans, and consultation evidence MUST travel as turn state. Dynamic restrictions MUST be enforced at dispatch.
 3. The consultation schema MUST be enabled at a collaboration-enabled session boundary and remain stable within that session. Ordinary sessions MUST preserve their existing tool schemas.
-4. The planner MUST reuse existing read tools and the authorized, non-destructive MCP route. Planner restrictions MUST preserve executor access and MUST NOT add shell write authority.
+4. The planner MUST reuse existing read tools and the authorized, non-destructive MCP route. Authorization and explicit deny MUST apply to discovery and dispatch. Planner restrictions MUST preserve executor access and MUST NOT add shell write authority.
 
 ## Consultation
 
