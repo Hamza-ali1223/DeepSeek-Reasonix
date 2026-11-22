@@ -46,17 +46,17 @@ export function PlannerSettings({ port }: { port: AgentPort }) {
   return (
     <>
       <SettingRow id="planner-consultation" title={t("settings.planner_consultation")} desc={t("settings.planner_consultation_hint")}>
-        <input aria-label={t("settings.planner_consultation")} type="checkbox" checked={settings.consultation} disabled={busy}
+        <input aria-label={t("settings.planner_consultation")} type="checkbox" data-action="planner.consultation" checked={settings.consultation} disabled={busy}
           onChange={(e) => setSettings({ ...settings, consultation: e.target.checked })} />
       </SettingRow>
       <SettingRow id="planner-consultation-limit" title={t("settings.planner_consultation_limit")}>
-        <input aria-label={t("settings.planner_consultation_limit")} type="number" min={1} max={8} value={settings.limit}
+        <input aria-label={t("settings.planner_consultation_limit")} type="number" min={1} max={8} value={settings.limit} data-action="planner.consultation-limit"
           disabled={busy || !settings.consultation} onChange={(e) => setSettings({ ...settings, limit: Number(e.target.value) })} />
       </SettingRow>
       <SettingRow id="planner-tools" title={t("settings.planner_tools")} desc={t("settings.planner_tools_hint")}>
-        <textarea aria-label={t("settings.planner_tools")} rows={3} value={toolsText} disabled={busy}
+        <textarea aria-label={t("settings.planner_tools")} rows={3} value={toolsText} data-action="planner.tools" disabled={busy}
           onChange={(e) => setToolsText(e.target.value)} />
-        <button type="button" className="spill" disabled={busy || !changed || !validLimit} onClick={() => void save()}>
+        <button type="button" className="spill" data-action="planner.save" disabled={busy || !changed || !validLimit} onClick={() => void save()}>
           {t("common.save")}
         </button>
       </SettingRow>
