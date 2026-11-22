@@ -426,8 +426,9 @@ func (c *Controller) recoverInterruptedTurn(path string) {
 		if digest, digestErr := c.executor.Session().ContentDigest(); digestErr != nil {
 			slog.Warn("controller: digest resumed in-flight turn", "err", digestErr)
 		} else if digest == marker.CommitDigest {
-			// The exact transcript named before the final snapshot is present. The
-			// process died after commit and before CAS cleanup; preserve everything.
+			// Committed, cleanup interrupted: the receipts are already in that
+			// transcript, so attaching is a no-op by id and the marker can go.
+			c.settleTurnReceipts(*marker)
 			if _, err := sessionstore.ClearSessionInFlightTurnIfMatch(path, *marker); err != nil {
 				slog.Warn("controller: clear committed in-flight turn marker", "err", err)
 			}
@@ -456,6 +457,11 @@ func (c *Controller) recoverInterruptedTurn(path string) {
 		if err := c.snapshot(false, true, false); err != nil {
 			slog.Warn("controller: post-interrupted-turn snapshot", "err", err)
 		}
+	}
+	// A stripped turn was abandoned before its user message landed, so its
+	// receipts go with it; a preserved one keeps them.
+	if changed && !marker.PreserveUser {
+		c.dropTurnReceipts(marker.ID)
 	}
 	if _, err := sessionstore.ClearSessionInFlightTurnIfMatch(path, *marker); err != nil {
 		slog.Warn("controller: clear stale in-flight turn", "err", err)

@@ -135,7 +135,14 @@ func (c *Controller) recordDecisionReceipt(pending pendingApproval, outcome stri
 	}
 	// Keep the receipt bounded and provider-excluded even when an older caller
 	// omits optional approval metadata.
-	c.executor.Session().AddDecisionReceipt(receipt)
+	if pending.tool == planApprovalTool {
+		// A plan approval is the one receipt that can be recorded before its
+		// turn's user message lands, so it must not go through the session's
+		// append-into-transcript path.
+		c.holdTurnReceipt(context.Background(), pending.turn, receipt)
+	} else {
+		c.executor.Session().AddDecisionReceipt(receipt)
+	}
 	c.sink.Emit(event.Event{
 		Kind:            event.Notice,
 		Code:            event.NoticeCodeDecisionReceipt,
@@ -628,6 +635,11 @@ func (c *Controller) requestApprovalDecision(ctx context.Context, req approvalRe
 	}
 	if req.fresh || req.requireHuman || req.tool == planApprovalTool {
 		id, reply = c.approval.registerDecisionKindWithInput(req.tool, req.subject, req.reason, req.args, req.fresh, req.requireHuman, kind, nil)
+		// A plan card outlives the turn context its resolver will run without,
+		// so the turn is stamped here, while it is still known.
+		if req.tool == planApprovalTool {
+			c.approval.stampTurn(id, c.currentTurnStamp(ctx))
+		}
 	} else {
 		id, reply = c.approval.registerWithInput(req.tool, req.subject, req.reason, req.args)
 	}

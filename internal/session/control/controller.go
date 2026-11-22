@@ -12,7 +12,6 @@ package control
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"os"
@@ -199,6 +198,8 @@ type Controller struct {
 	grantsMu sync.Mutex
 	// turn counts model turns this session, passed to hooks in their payload.
 	turn int
+	// pendingReceipts holds receipts awaiting a carrier, keyed by in-flight turn id.
+	pendingReceipts map[string][]*provider.DecisionReceipt
 
 	displayRecorder func(content, display string)
 
@@ -215,20 +216,6 @@ type approvalReply struct {
 	allow   bool
 	session bool
 	persist bool // true = write "always allow" rule to config
-}
-
-type pendingApproval struct {
-	id           string
-	tool         string
-	subject      string
-	reason       string
-	rawInput     json.RawMessage
-	fresh        bool
-	requireHuman bool
-	autoDrain    bool
-	kind         string // tool | plan | recovery; empty = tool
-	recovery     *event.RecoveryApproval
-	reply        chan approvalReply
 }
 
 type plannerSessionResetter interface {
