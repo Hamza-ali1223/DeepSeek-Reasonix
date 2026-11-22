@@ -101,6 +101,7 @@ type InboxItemMeta struct {
 	ByteSize    int64        `json:"byteSize"`
 	Checksum    string       `json:"checksum"`
 	Idempotency string       `json:"idempotencyKey,omitempty"`
+	WorkMode    string       `json:"workMode,omitempty"`
 	Origin      PromptOrigin `json:"origin,omitempty"`
 	Refs        []RefSummary `json:"refs,omitempty"`
 	// Images is true when the item froze a picture for direct input: such an
@@ -157,6 +158,7 @@ type PromptEnvelope struct {
 	Invocation           *StructuredInvocation  `json:"invocation,omitempty"`
 	Invocations          []StructuredInvocation `json:"invocations,omitempty"`
 	Format               string                 `json:"format,omitempty"`
+	WorkMode             string                 `json:"workMode,omitempty"`
 	Attachments          []string               `json:"attachments,omitempty"`
 	AttachmentIdentities []string               `json:"attachmentIdentities,omitempty"`
 	Refs                 []RefSnapshot          `json:"refs,omitempty"`

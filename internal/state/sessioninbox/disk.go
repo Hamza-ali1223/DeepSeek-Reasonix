@@ -309,6 +309,7 @@ func (s *Store) salvageOrphanBlobsLocked() ([]InboxItemMeta, error) {
 			Preview:     preview,
 			ByteSize:    int64(len(data)),
 			Checksum:    sha256Hex(data),
+			WorkMode:    strings.TrimSpace(env.WorkMode),
 			RunID:       s.runID,
 			BlockReason: "salvaged after corrupt manifest",
 			BlockCode:   BlockManifestSalvaged,
@@ -374,6 +375,7 @@ func idempotencyRequestHash(env PromptEnvelope) (string, error) {
 		SubmitText           string             `json:"submitText"`
 		Invocations          []stableInvocation `json:"invocations,omitempty"`
 		Format               string             `json:"format,omitempty"`
+		WorkMode             string             `json:"workMode,omitempty"`
 		Attachments          []string           `json:"attachments,omitempty"`
 		AttachmentIdentities []string           `json:"attachmentIdentities,omitempty"`
 		ExplicitRefs         []string           `json:"explicitRefs,omitempty"`
@@ -385,6 +387,7 @@ func idempotencyRequestHash(env PromptEnvelope) (string, error) {
 		SubmitText:           env.SubmitText,
 		Invocations:          invocations,
 		Format:               env.Format,
+		WorkMode:             env.WorkMode,
 		Attachments:          env.Attachments,
 		AttachmentIdentities: env.AttachmentIdentities,
 		ExplicitRefs:         env.ExplicitRefs,
@@ -403,6 +406,7 @@ func normalizeEnvelope(env PromptEnvelope) PromptEnvelope {
 	env.RawText = strings.TrimSpace(env.RawText)
 	env.SubmitText = strings.TrimSpace(env.SubmitText)
 	env.Format = strings.TrimSpace(env.Format)
+	env.WorkMode = strings.TrimSpace(env.WorkMode)
 	env.Idempotency = strings.TrimSpace(env.Idempotency)
 	env.Source = strings.TrimSpace(env.Source)
 	return env

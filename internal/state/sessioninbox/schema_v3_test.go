@@ -108,3 +108,17 @@ func TestRequestHashFollowsTheOneXFingerprint(t *testing.T) {
 		t.Fatalf("attachment identities do not take part in the hash: %q %q %v", plain, withIDs, err)
 	}
 }
+
+func TestRequestHashBindsTheSelectedWorkMode(t *testing.T) {
+	legacy, err := idempotencyRequestHash(PromptEnvelope{SubmitText: "x"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	planner, err := idempotencyRequestHash(PromptEnvelope{SubmitText: "x", WorkMode: "agent_planner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if planner == legacy {
+		t.Fatal("the same idempotency key could replay a queued prompt under a different work mode")
+	}
+}
