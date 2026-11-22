@@ -126,6 +126,12 @@ export interface WriteLeaseSettings {
 
 // Whether a submitted plan starts executing without the approval click, as the
 // user file records it. A project file cannot set it.
+export interface PlannerSettings {
+  consultation: boolean;
+  limit: number;
+  tools: string[];
+}
+
 export interface PlanApprovalSettings {
   auto: boolean;
   path: string;

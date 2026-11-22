@@ -65,6 +65,14 @@ export class SseBoundary extends SseShell {
   planApproval() {
     return this.get<PlanApprovalSettings>("/plan-approval");
   }
+
+  plannerSettings() {
+    return this.get<import("./boundary").PlannerSettings>("/planner-settings");
+  }
+
+  savePlannerSettings(settings: import("./boundary").PlannerSettings) {
+    return this.post0<import("./boundary").PlannerSettings>("/planner-settings", settings);
+  }
   savePlanApproval(auto: boolean) {
     return this.post0<PlanApprovalSettings>("/plan-approval", { auto });
   }

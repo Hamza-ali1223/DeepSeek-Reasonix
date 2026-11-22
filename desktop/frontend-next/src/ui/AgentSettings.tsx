@@ -10,6 +10,7 @@ import { ApplyNote } from "./Group";
 import { AskTimeout } from "./AskTimeout";
 import { PeersSection } from "./PeersSection";
 import { PlanApproval } from "./PlanApproval";
+import { PlannerSettings } from "./PlannerSettings";
 import { ProgressWatch } from "./ProgressWatch";
 import { SectionCard } from "./SectionCard";
 import { SessionRef } from "./SessionRef";
@@ -60,6 +61,7 @@ export function AgentSettings({ port, hub, persona, onPersona, onChanged }: Prop
       </SectionCard>
       <SectionCard title={t("settings.plans_and_questions")}>
         <PlanApproval port={port} />
+        <PlannerSettings port={port} />
         <AskTimeout port={port} />
         <TurnNarrationSetting port={port} />
         <ProgressWatch port={port} />

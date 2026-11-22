@@ -1,6 +1,11 @@
 import type { Messages } from "./types";
 
 export const SETTINGS: Messages = {
+  "settings.planner_consultation": { zh: "允许咨询规划模型", en: "Allow planner consultations" },
+  "settings.planner_consultation_hint": { zh: "在下一次打开的会话中，执行模型可以咨询规划模型", en: "In the next session you open, the executor can consult the planner" },
+  "settings.planner_consultation_limit": { zh: "每轮咨询上限", en: "Consultation limit per turn" },
+  "settings.planner_tools": { zh: "规划模型研究工具", en: "Planner research tools" },
+  "settings.planner_tools_hint": { zh: "每行一个工具名称、mcp-server:<服务器> 或 mcp-tool:<服务器>/<工具>。留空使用默认工具；下次打开会话时生效。", en: "Enter a tool name, mcp-server:<server>, or mcp-tool:<server>/<tool> per line. A blank list uses the defaults. Applies to the next session." },
   "settings.back_to_workspace": { zh: "返回工作区", en: "Back to workspace" },
   "settings.a_system_notification_when_a": { zh: "一轮结束、等你处理时，系统通知提醒你", en: "A system notification when a turn ends or something waits for you" },
   "settings.account": { zh: "账号", en: "Account" },
