@@ -914,3 +914,9 @@ describe("what a turn spent against what the session spent", () => {
     expect(s.metrics.turn).toEqual([{ currency: "CNY", amount: 2 }]);
   });
 });
+it("adds only typed planner collaboration phases to the transcript", () => {
+  const requested = reduce(initialState, { kind: "phase", code: "planner.requested", modelRef: "gateway/sol" });
+  expect(requested.items).toHaveLength(1);
+  expect(requested.items[0]).toMatchObject({ t: "notice", code: "planner.requested" });
+  expect(reduce(requested, { kind: "phase", text: "gateway/sol · planning" })).toBe(requested);
+});

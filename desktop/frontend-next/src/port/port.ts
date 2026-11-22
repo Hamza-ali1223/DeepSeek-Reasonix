@@ -120,6 +120,7 @@ export interface Queue {
 export interface QueueItem {
   id: string;
   intent: "followup" | "steer";
+  workMode?: WorkMode;
   // Absent means the user wrote it. "host" is the runtime's own continuation —
   // a finished background job asking the session to pick the work back up.
   origin?: "host";
@@ -137,6 +138,8 @@ export interface QueueItem {
   // turn as guidance; it is sent as a turn of its own when the current one ends.
   images?: boolean;
 }
+
+export type WorkMode = "agent_planner";
 
 /** Both limits bite: the queue refuses on count and on total bytes, and a
  *  panel that showed one of them would be wrong about the other. */
@@ -670,15 +673,15 @@ export interface AgentPort extends RunningWorkPort, MemoryHoldPort, WorkspacePre
 
   // chips carries skill chips beside the line; without it the line is parsed
   // as typed, so a kernel that predates chips still runs a leading one.
-  submit(text: string, chips?: ChipCall): Promise<Queued | void>;
+  submit(text: string, chips?: ChipCall, workMode?: WorkMode): Promise<Queued | void>;
   // /submit 409s once a turn holds the session. Mid-turn input is durable and
   // goes through the inbox, which delivers it at the next tool boundary. The
   // receipt is what makes it cancellable while it waits there.
-  steer(text: string): Promise<Queued>;
+  steer(text: string, workMode?: WorkMode): Promise<Queued>;
   // A whole turn, queued because one is already running. The kernel
   // refuses /submit with a code rather than a sentence, so this is what
   // the client does about it instead of showing anyone the refusal.
-  queueFollowup(text: string, chips?: ChipCall): Promise<Queued>;
+  queueFollowup(text: string, chips?: ChipCall, workMode?: WorkMode): Promise<Queued>;
   // Takes a queued line back before the turn reads it, and refuses once it has.
   cancelQueued(itemId: string): Promise<void>;
   // The queue as the kernel holds it. Read on every inbox_changed frame: the

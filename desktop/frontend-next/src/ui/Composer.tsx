@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { t } from "../i18n";
 import { reason } from "../i18n/kernel";
 import { keepPasteAsFile, PasteKeep, type PasteChip } from "./pastekeep";
-import type { AgentPort, ChipCall, SessionStatus, WorkspaceGit, WorkspaceInfo } from "../port/port";
+import type { AgentPort, ChipCall, SessionStatus, WorkMode, WorkspaceGit, WorkspaceInfo } from "../port/port";
 import { Picker } from "./Menu";
 import { BranchChip } from "./BranchChip";
 import { WorktreeChip } from "./WorktreeChip";
@@ -67,7 +67,7 @@ interface Props {
   // Bumped when something outside asks for the cursor — answering a plan card
   // with "revise" is a request to say what to change, and the saying happens here.
   focus?: number;
-  onSubmit: (text: string, chips?: ChipCall) => Promise<Submitted>;
+  onSubmit: (text: string, chips?: ChipCall, workMode?: WorkMode) => Promise<Submitted>;
   onChanged: () => void;
   onError: (e: unknown) => void;
   onSettings?: (section?: string) => void;
@@ -93,6 +93,7 @@ export function Composer({ port, status, running, queued = false, quote, restore
   const providerOrder = useProviderOrder();
   const modelGroups = useModelFilter();
   const [submitting, setSubmitting] = useState(false);
+  const [workMode, setWorkMode] = useState<WorkMode | undefined>();
   const worktree = useWorktreeSetup(port, fresh && !!git?.repo, status?.workspaceRoot ?? "", onChanged, onTreeChanged, status?.sessionPath ?? "");
   const [setupDraft, setSetupDraft] = useState<{ text: string; files: string[] }>({ text: "", files: [] });
   const setupPhase = worktree.stage?.phase ?? null;
@@ -269,7 +270,9 @@ export function Composer({ port, status, running, queued = false, quote, restore
           const prepared = await worktree.prepare(draft.shots.flatMap((chip) => chip.k === "attachment" && chip.a ? [chip.a.path] : chip.k === "paste" && chip.saved ? [chip.saved.path] : []));
           if (!prepared) { restoreDraft(); return; }
         }
-        const sent = await (call ? onSubmit(line, call) : onSubmit(line));
+        const sent = workMode === "agent_planner"
+          ? await onSubmit(line, call, workMode)
+          : call ? await onSubmit(line, call) : await onSubmit(line);
         if (sent === true) {
           finishSubmit(true);
           worktree.dismiss();
@@ -703,15 +706,18 @@ export function Composer({ port, status, running, queued = false, quote, restore
             place="bottom"
             title={t("composer.work_mode")}
             menuClassName="composer-menu mode-menu"
-            current={status?.plan ? "plan" : "agent"}
+            current={workMode ?? (status?.plan ? "plan" : "agent")}
             pending={busy["plan"]}
             items={[
               { value: "__mode", label: t("composer.work_mode"), right: t("common.current_task"), header: true },
               { value: "agent", label: "Agent", desc: t("composer.run_tasks_with_enabled_tools") },
               { value: "plan", label: "Plan", desc: t("composer.plan_steps_before_changing_files") },
+              { value: "agent_planner", label: t("composer.agent_plus_planner"), desc: t("composer.plan_with_dedicated_model_before_execution") },
             ]}
-            onPick={(value) => change("plan", () => port.setPlanMode(value === "plan"))}
-            label={<><StudioIcon name={status?.plan ? "tasks" : "agent"} /><span className="studio-sr-label">{t("common.plan")}</span><span>{status?.plan ? "Plan" : "Agent"}</span><StudioIcon name="down" /></>}
+            onPick={(value) => value === "agent_planner"
+              ? setWorkMode("agent_planner")
+              : change("plan", async () => { setWorkMode(undefined); await port.setPlanMode(value === "plan"); })}
+            label={<><StudioIcon name={status?.plan && workMode !== "agent_planner" ? "tasks" : "agent"} /><span className="studio-sr-label">{t("common.plan")}</span><span>{workMode === "agent_planner" ? t("composer.agent_plus_planner") : status?.plan ? "Plan" : "Agent"}</span><StudioIcon name="down" /></>}
           />
         </div>
         {git?.repo && (worktree.sources || status?.workspaceRoot) ? <WorktreeChip port={port} workspace={workspace} onChanged={onChanged} onSwitched={onTreeChanged} onError={onError} changeCount={countElsewhere ? 0 : changeCount} sources={worktree.sources ?? { available: false, sourceRoot: status?.workspaceRoot ?? "", sources: [] }} canCreate={fresh && !!worktree.sources?.available} selection={worktree.selection} branch={git.branch} busy={submitting || running} onSelect={worktree.setSelection} refresh={worktree.refresh} /> : <BranchChip port={port} git={git} changeCount={changeCount} countElsewhere={countElsewhere} onChanged={onChanged} onSwitched={onTreeChanged} onError={onError} />}

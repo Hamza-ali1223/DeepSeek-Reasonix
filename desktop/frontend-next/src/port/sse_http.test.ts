@@ -42,6 +42,16 @@ it("typed surface answers retain JSON values on the wire", async () => {
   expect(JSON.parse(String(init.body))).toEqual({ id:"ask-1", answers:[{ QuestionID:"surface", Selected:[], Value:{ count:2, enabled:false, tags:["fast"] } }] });
 });
 
+it("carries Agent + Planner as a distinct submission field for direct and queued requests", async () => {
+  const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => ({ ok: true, status: 200, text: async () => "", json: async () => ({ itemId: "i1" }) }));
+  vi.stubGlobal("fetch", fetchMock);
+  const port = new SsePort();
+  await port.submit("build it", undefined, "agent_planner");
+  await port.queueFollowup("build it later", undefined, "agent_planner");
+  expect(JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))).toEqual({ input: "build it", workMode: "agent_planner" });
+  expect(JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body))).toEqual({ input: "build it later", intent: "followup", workMode: "agent_planner" });
+});
+
 describe("idempotent reads", () => {
   it("share one request while it is in flight, with one trailing re-read for the rest", async () => {
     const { fetchMock, pending } = deferredFetch();

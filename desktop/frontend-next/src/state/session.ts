@@ -21,6 +21,7 @@ export type { CurrencyAmount, Item, Metrics, PlanStep, RememberedFact, RuntimeNo
 export { currentStep, stepDone, stepLabel };
 import { askAnnounced, askEngaged, askFromCall, promptOpen, prompted, sealByReceipt } from "./prompts";
 import { stampPlan } from "./plan_card";
+import { foldPlannerPhase } from "./planner_phase";
 import { nameTurnStart, othersSteer } from "./turn_start";
 import { appendText, foldMessage, sealSay, stopThought } from "./say";
 import { nextId } from "./ids";
@@ -539,6 +540,7 @@ function apply(s: SessionState, ev: SessionEvent): SessionState {
       return { ...s, steerQueue: q, items: [...s.items.slice(0, at), ...s.items.slice(at + 1), row] };
     }
 
+    case "phase": return foldPlannerPhase(s, ev);
     case "notice": {
       const level = ev.level ?? "info";
       // Older journals stored the capability resolver's audit line as an

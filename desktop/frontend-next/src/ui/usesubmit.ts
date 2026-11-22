@@ -1,5 +1,5 @@
 import { useCallback, type Dispatch } from "react";
-import { HttpError, type AgentPort, type ChipCall } from "../port/port";
+import { HttpError, type AgentPort, type ChipCall, type WorkMode } from "../port/port";
 import { localId } from "../state/session";
 import type { reduceTraj } from "../state/trajectory";
 import { useRunningMessageIntent } from "../state/prefs";
@@ -30,14 +30,14 @@ export function useSubmit({ port, running, dispatch, trajDispatch, refreshStatus
   // the words are fine, the timing is not. Queueing them is what that code
   // asks for.
   const submitOrQueue = useCallback(
-    async (text: string, id: string, chips?: ChipCall) => {
+    async (text: string, id: string, chips?: ChipCall, workMode?: WorkMode) => {
       try {
-        const held = await port.submit(text, chips);
+        const held = workMode ? await port.submit(text, chips, workMode) : await port.submit(text, chips);
         if (held?.paused && held.itemId) dispatch({ kind: "__queued", id, itemId: held.itemId, queued: "followup", paused: true } as never);
         refreshStatus();
       } catch (e) {
         if (!(e instanceof HttpError) || e.reason?.code !== "busy.session_running") throw e;
-        const queued = await port.queueFollowup(text, chips);
+        const queued = workMode ? await port.queueFollowup(text, chips, workMode) : await port.queueFollowup(text, chips);
         if (queued?.itemId) dispatch({ kind: "__queued", id, itemId: queued.itemId, queued: "followup", paused: queued.paused } as never);
       }
     },
@@ -45,18 +45,20 @@ export function useSubmit({ port, running, dispatch, trajDispatch, refreshStatus
   );
 
   return useCallback(
-    async (text: string, chips?: ChipCall): Promise<Submitted> => {
+    async (text: string, chips?: ChipCall, workMode?: WorkMode): Promise<Submitted> => {
       const queuedWhileRunning = running;
       const id = localId();
       dispatch({ kind: "__user", text, pending: queuedWhileRunning, id } as never);
       trajDispatch({ kind: "__user", text });
       try {
         if (queuedWhileRunning) {
-          const followup = !!chips || runningIntent === "followup";
-          const queued = followup ? await port.queueFollowup(text, chips) : await port.steer(text);
+          const followup = !!chips || workMode === "agent_planner" || runningIntent === "followup";
+          const queued = followup
+            ? workMode ? await port.queueFollowup(text, chips, workMode) : await port.queueFollowup(text, chips)
+            : await port.steer(text);
           if (queued?.itemId) dispatch({ kind: "__queued", id, itemId: queued.itemId, queued: followup || queued.paused || queued.disposition === "queued_followup" ? "followup" : "steer", paused: queued.paused } as never);
         } else {
-          await submitOrQueue(text, id, chips);
+          await submitOrQueue(text, id, chips, workMode);
         }
         return true;
       } catch (e) {
