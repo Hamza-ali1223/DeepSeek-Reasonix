@@ -85,6 +85,14 @@ func (w roleWiring) planner(opts Options, executor *agent.Agent, executorModel, 
 		CapabilityAudit:   plannerAudit,
 	}
 	runner := coordinator.NewCoordinatorWithPlannerPolicy(plannerProv, plannerSess, pe.Price, plannerTools, plannerOpts, executor, w.cfg.Agent.Temperature, w.sink, control.NewPlannerPolicy())
+	if w.cfg.Agent.PlannerConsultation && runner.PlannerAgent() != nil {
+		limit := w.cfg.Agent.PlannerConsultationLimit
+		if limit == 0 {
+			limit = 1
+		}
+		runner.SetConsultationLimit(limit)
+		w.reg.Add(coordinator.NewConsultationTool(runner))
+	}
 	return runner, executorModel + " + planner " + pe.Model, nil
 }
 

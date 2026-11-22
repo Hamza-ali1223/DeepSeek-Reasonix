@@ -13,3 +13,9 @@ type Runner interface {
 type PlannerPlanApprover interface {
 	RunWithPlannerApproval(ctx context.Context, plan string, run func(context.Context) error) error
 }
+
+// PlannerRevisionApprover approves a proposed revision without starting a second
+// executor run or changing its tool confirmation policy.
+type PlannerRevisionApprover interface {
+	ApprovePlannerRevision(ctx context.Context, plan string) (bool, error)
+}
