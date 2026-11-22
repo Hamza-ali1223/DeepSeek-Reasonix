@@ -377,6 +377,7 @@ func (s *Store) Enqueue(req EnqueueRequest) (InboxReceipt, error) {
 		ByteSize:    byteSize,
 		Checksum:    checksum,
 		Idempotency: idem,
+		WorkMode:    strings.TrimSpace(env.WorkMode),
 		Origin:      req.Origin,
 		Refs:        refSummaries(env.Refs),
 		Images:      env.CarriesImages(),
@@ -509,6 +510,7 @@ func (s *Store) UpdateItemWithIdempotency(id string, env PromptEnvelope, alias s
 	next.Items[i].ByteSize = byteSize
 	next.Items[i].Checksum = checksum
 	next.Items[i].Preview = PreviewText(env.DisplayText, DefaultPreviewRunes)
+	next.Items[i].WorkMode = strings.TrimSpace(env.WorkMode)
 	next.Items[i].Refs = refSummaries(env.Refs)
 	next.Items[i].Images = env.CarriesImages()
 	next.Items[i].UpdatedAt = time.Now().UTC()
