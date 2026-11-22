@@ -605,6 +605,32 @@ func TestPlanPhaseAssertionRefusesAnUnadmittedCall(t *testing.T) {
 	}
 }
 
+func TestTurnPlanRuntimeAllowsApprovedCollaborationWriterWithoutChangingGlobalPlan(t *testing.T) {
+	var executions int32
+	reg := tool.NewRegistry()
+	reg.Add(fakeTool{name: "write_file", writesPaths: true, calls: &executions})
+	a := New(nil, reg, sessionstore.NewSession(""), Options{CheckTargetAccess: allowTestFileAccess}, event.Discard)
+	a.SetPlanMode(true)
+	global := a.PlanState()
+	ctx := WithTurnPlanRuntime(context.Background(), planmode.NewRuntime())
+	_, _ = a.beginRunTurn(ctx, "implement approved plan")
+
+	if a.PlanningPhase() {
+		t.Fatal("collaboration run inherited the session Plan gate")
+	}
+	call := provider.ToolCall{Name: "write_file", Arguments: `{"path":"x.txt","content":"x"}`}
+	out := a.executeOne(ctx, &a.turn, call)
+	if out.blocked {
+		t.Fatalf("approved collaboration writer was blocked: %+v", out)
+	}
+	if executions != 1 {
+		t.Fatalf("writer executed %d times, want 1", executions)
+	}
+	if got := a.PlanState(); got != global || got.Phase != planmode.Planning {
+		t.Fatalf("session Plan state changed: before=%+v after=%+v", global, got)
+	}
+}
+
 // Approval grants capability to the work that follows it, not to whatever was
 // already in flight. A batch the model streamed while planning arrives after
 // the transition; it must be refused for being stale, and refused as stale

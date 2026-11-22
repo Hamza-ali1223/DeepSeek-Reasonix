@@ -1,6 +1,7 @@
 package serve
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -65,10 +66,14 @@ type traceCase struct {
 	input    string
 	executor [][]provider.Chunk
 	planner  [][]provider.Chunk
+	workMode string
 	// interactive wires the host's question surfaces, which is what makes an
 	// approval or an ask reachable at all: without them a tool call is either
 	// auto-allowed or told to decide for itself, and no barrier ever lands.
 	interactive bool
+	// rejectPlan answers a plan approval with no. The default allows, which is
+	// why a fixture that cares about the rejected path must say so.
+	rejectPlan bool
 }
 
 // runTrace drives one turn through control -> eventwire -> broadcaster ->
@@ -153,13 +158,17 @@ func runTrace(t *testing.T, tc traceCase) traceReading {
 	s := New(ctrl, bc, config.ServeConfig{})
 	if tc.interactive {
 		ctrl.EnableInteractiveApproval()
-		go answerBarriers(ctrl, barriers)
+		go answerBarriers(ctrl, barriers, !tc.rejectPlan)
 	}
 
 	// The serve frontend's own entry point, because the turn boundary is part of
 	// what this compares: Run is synchronous and closes no turn, so a harness
 	// built on it would be measuring a shape no frontend produces.
-	ctrl.SubmitHTTP(tc.input)
+	body, err := json.Marshal(map[string]string{"input": tc.input, "workMode": tc.workMode})
+	if err != nil {
+		t.Fatalf("marshal submit: %v", err)
+	}
+	s.submit(httptest.NewRecorder(), httptest.NewRequest(http.MethodPost, "/submit", bytes.NewReader(body)))
 	// A turn is hung when it goes silent, not when it is long; one that never
 	// stops emitting is bounded by a total ceiling.
 	quiet := testenv.Budget(t) / 2
@@ -329,6 +338,83 @@ func TestTwoModelTurnKeepsEachProducersOwnFacts(t *testing.T) {
 	}
 }
 
+func TestAgentPlannerWorkModeRoutesExplicitlyAndWaitsForApproval(t *testing.T) {
+	r := runTrace(t, traceCase{
+		input:       "implement the feature",
+		workMode:    "agent_planner",
+		interactive: true,
+		planner: [][]provider.Chunk{{
+			{Type: provider.ChunkToolCall, ToolCall: &provider.ToolCall{
+				ID: "plan-1", Name: "submit_plan",
+				Arguments: `{"objective":"implement the feature","steps":[{"title":"change the feature"}]}`,
+			}},
+		}},
+		executor: [][]provider.Chunk{{say("implemented")}},
+	})
+	approvalAt, executorAt := -1, -1
+	for i, e := range r.live {
+		if e.Code == event.NoticeCodeTurnIdentityMismatch {
+			t.Fatalf("planner reused the executor's authored turn identity: %s", e.Detail)
+		}
+		if e.Kind == "approval_request" && approvalAt < 0 {
+			approvalAt = i
+		}
+		if e.Kind == "phase" && e.Source == "executor" && executorAt < 0 {
+			executorAt = i
+		}
+	}
+	if approvalAt < 0 {
+		t.Fatalf("Agent + Planner did not ask before execution: %+v", r.live)
+	}
+	if executorAt < 0 || approvalAt > executorAt {
+		t.Fatalf("executor phase at %d preceded/missed approval at %d", executorAt, approvalAt)
+	}
+}
+
+// A rejected plan is the other half of the same contract: the turn stops rather
+// than falling through to execution. The authored-turn identity is the approval
+// test's subject, so this fixture asserts only the rejection.
+func TestAgentPlannerWorkModeRejectionStopsBeforeExecutor(t *testing.T) {
+	r := runTrace(t, traceCase{
+		input:       "implement the feature",
+		workMode:    "agent_planner",
+		interactive: true,
+		rejectPlan:  true,
+		planner: [][]provider.Chunk{{
+			{Type: provider.ChunkToolCall, ToolCall: &provider.ToolCall{
+				ID: "plan-1", Name: "submit_plan",
+				Arguments: `{"objective":"implement the feature","steps":[{"title":"change the feature"}]}`,
+			}},
+		}},
+		executor: [][]provider.Chunk{{say("must not execute")}},
+	})
+	var approvalAt = -1
+	for i, e := range r.live {
+		if e.Kind == "approval_request" && approvalAt < 0 {
+			approvalAt = i
+		}
+		if e.Kind == "phase" && e.Source == "executor" {
+			t.Fatalf("rejected Agent + Planner plan fell through to the executor at %d: %+v", i, r.live)
+		}
+	}
+	if approvalAt < 0 {
+		t.Fatalf("Agent + Planner never asked, so rejection was unreachable: %+v", r.live)
+	}
+}
+
+func TestAgentPlannerWorkModeWithoutPlannerStopsBeforeExecutor(t *testing.T) {
+	r := runTrace(t, traceCase{
+		input:    "implement the feature",
+		workMode: "agent_planner",
+		executor: [][]provider.Chunk{{say("must not execute")}},
+	})
+	for _, e := range r.live {
+		if e.Source == "executor" && (e.Kind == "phase" || e.Kind == "text" || e.Kind == "message") {
+			t.Fatalf("missing planner fell through to executor: %+v", r.live)
+		}
+	}
+}
+
 // The host advances a task list itself, and the frame it emits is shaped
 // exactly like the model's own todo_write. Same turn, same shape, different
 // issuer — which is the only thing that tells them apart on either reading.
@@ -409,11 +495,11 @@ func TestTurnIdentitySurvivesToTheColdReading(t *testing.T) {
 // answerBarriers plays the person: it allows what is asked and picks the first
 // option offered. Which way it answers is not what this measures — that a
 // barrier lands inside a call and both readings say so is.
-func answerBarriers(ctrl *control.Controller, in <-chan eventwire.Event) {
+func answerBarriers(ctrl *control.Controller, in <-chan eventwire.Event, allow bool) {
 	for e := range in {
 		switch {
 		case e.Approval != nil:
-			ctrl.Approve(e.Approval.ID, true, false, false)
+			ctrl.Approve(e.Approval.ID, allow, false, false)
 		case e.Ask != nil:
 			answers := make([]event.AskAnswer, 0, len(e.Ask.Questions))
 			for _, q := range e.Ask.Questions {

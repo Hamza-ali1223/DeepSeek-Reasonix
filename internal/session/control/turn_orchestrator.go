@@ -195,20 +195,7 @@ func (o *turnOrchestrator) runOrchestratedTurn(ctx context.Context, turn orchest
 	ctx, images := c.bindOrchestratedTurnImages(ctx, turn)
 	ctx = agent.WithRawUserInput(ctx, turn.raw)
 	continuation := turn.goalContinuation
-	var input string
-	if continuation != nil {
-		input = c.composeWithGoal(
-			turn.input,
-			turn.raw,
-			false,
-			continuation.goal,
-			GoalStatusRunning,
-			"",
-		)
-	} else {
-		input = c.compose(turn.input, turn.raw, !turn.synthetic)
-	}
-	input = c.imageRoutingPrefix(images) + input
+	input := c.composeOrchestratedInput(ctx, turn, images)
 	// input.receive: the composed text crosses the extension chain before it
 	// enters the session (checkpoint, hooks, and the model all see the final
 	// text). A block ruling aborts the turn with the redacted reason surfaced,
@@ -261,7 +248,10 @@ func (o *turnOrchestrator) runOrchestratedTurn(ctx context.Context, turn orchest
 	if !turn.synthetic {
 		modelInput = c.withCapabilityRoute(ctx, input, turn.raw)
 	}
-	ctx = c.withPlannerTurnMetadata(ctx, turn.raw, turn.synthetic)
+	ctx, err = c.prepareExplicitPlannerTurn(ctx, turn, modelInput)
+	if err != nil {
+		return err
+	}
 	// Real user turns open a fresh Recovery Episode. Goal auto-continues and
 	// other synthetic turns inherit the current Episode so budgets accumulate
 	// only within one host-owned execution round.
@@ -304,6 +294,32 @@ func (o *turnOrchestrator) runOrchestratedTurn(ctx context.Context, turn orchest
 		return err
 	}
 	return o.gatePlanApproval(ctx)
+}
+
+func (c *Controller) composeOrchestratedInput(ctx context.Context, turn orchestratedTurn, images *turnImages) string {
+	var input string
+	if continuation := turn.goalContinuation; continuation != nil {
+		input = c.composeWithGoal(turn.input, turn.raw, false, continuation.goal, GoalStatusRunning, "")
+	} else {
+		input = c.compose(turn.input, turn.raw, !turn.synthetic)
+	}
+	if eligibleAgentPlannerTurn(workModeFromContext(ctx), turn.raw, turn.synthetic) {
+		input = stripComposeMarker(input, PlanModeMarker)
+	}
+	return c.imageRoutingPrefix(images) + input
+}
+
+func (c *Controller) prepareExplicitPlannerTurn(ctx context.Context, turn orchestratedTurn, modelInput string) (context.Context, error) {
+	ctx = c.withPlannerTurnMetadata(ctx, turn.raw, turn.synthetic)
+	if !eligibleAgentPlannerTurn(workModeFromContext(ctx), turn.raw, turn.synthetic) ||
+		DecidePlannerRoute(ctx, modelInput).Route != agent.PlannerRoutePlanForApproval {
+		return ctx, nil
+	}
+	roles, ok := c.runner.(interface{ PlannerAgent() *agent.Agent })
+	if !ok || roles.PlannerAgent() == nil {
+		return ctx, ErrPlannerUnavailable
+	}
+	return agent.WithTurnPlanRuntime(ctx, planmode.NewRuntime()), nil
 }
 
 // announceAuthoredTurn opens this turn's boundary before any planner or
@@ -364,6 +380,10 @@ func (c *Controller) continueAnnouncedTurn(ctx context.Context) context.Context 
 // transition, so a decision answered after the workflow moved grants nothing.
 func (o *turnOrchestrator) gatePlanApproval(ctx context.Context) error {
 	c := o.c
+	if meta, ok := plannerTurnMetadataFromContext(ctx); ok &&
+		eligibleAgentPlannerTurn(meta.WorkMode, meta.UserText, meta.Synthetic) {
+		return nil
+	}
 	planning := c.plan().State()
 	if planning.Phase != planmode.Planning {
 		return nil

@@ -1,6 +1,7 @@
 package serve
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -116,5 +117,25 @@ func TestAChipAloneIsASubmittableLine(t *testing.T) {
 	got := rig.post(t, rig.s.submit, "/submit", `{"input":"/probe","submit":"","invocations":[{"name":"probe","kind":"skill","offset":0}]}`)
 	if !strings.Contains(got, "PROBE BODY") || strings.Contains(got, "Arguments:") {
 		t.Fatalf("a lone chip reached the model as:\n%s", got)
+	}
+}
+
+func TestSubmitRefusesUnsupportedWorkModeByCode(t *testing.T) {
+	rig := newChipRig(t)
+	rec := httptest.NewRecorder()
+	rig.s.submit(rec, httptest.NewRequest(http.MethodPost, "/submit", strings.NewReader(
+		`{"input":"hello","workMode":"planner-ish"}`,
+	)))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("POST /submit = %d, want 400: %s", rec.Code, rec.Body.String())
+	}
+	var reason struct {
+		Code string `json:"code"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &reason); err != nil {
+		t.Fatalf("decode refusal: %v", err)
+	}
+	if reason.Code != codeBadValue {
+		t.Fatalf("refusal code = %q, want %q", reason.Code, codeBadValue)
 	}
 }

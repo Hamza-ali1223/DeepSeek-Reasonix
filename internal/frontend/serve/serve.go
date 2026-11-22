@@ -419,7 +419,8 @@ func (s *Server) logoWordmark(w http.ResponseWriter, _ *http.Request) {
 func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		chipLine
-		Format string `json:"format"`
+		Format   string `json:"format"`
+		WorkMode string `json:"workMode"`
 		// RefuseUnknownSlash answers a slash command nothing resolves with a
 		// notice instead of sending it to the model.
 		RefuseUnknownSlash bool `json:"refuseUnknownSlash"`
@@ -431,6 +432,11 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 		missingField(w, "input")
 		return
 	}
+	workMode := control.WorkMode(body.WorkMode)
+	if !workMode.Valid() {
+		badValue(w, "workMode", string(control.WorkModeAgentPlanner))
+		return
+	}
 	body.Format = strings.TrimSpace(body.Format)
 	switch body.Format {
 	case "", "json_object":
@@ -440,7 +446,7 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(body.Invocations) > 0 {
-		s.submitChips(w, r, body.chipLine, body.Format)
+		s.submitChips(w, r, body.chipLine, body.Format, workMode)
 		return
 	}
 	trimmed := strings.TrimSpace(body.Input)
@@ -490,7 +496,7 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 			keepUsedWorkspace(ctrl.WorkspaceRoot())
 		}
 	}
-	refused := submitOrShell(ctrl, r, body.Input, body.Format, body.RefuseUnknownSlash, body.LocalShell)
+	refused := submitOrShell(ctrl, r, body.Input, body.Format, body.RefuseUnknownSlash, body.LocalShell, workMode)
 	s.bindMu.Unlock()
 	if refused {
 		sessionBusy(w)

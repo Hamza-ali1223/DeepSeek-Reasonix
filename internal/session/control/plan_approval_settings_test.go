@@ -1,6 +1,7 @@
 package control
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -13,6 +14,28 @@ import (
 	"reasonix/internal/runtime/agent"
 	"reasonix/internal/state/sessionstore"
 )
+
+func TestAgentPlannerAutoApprovalKeepsToolApprovalIndependent(t *testing.T) {
+	r := newPlanRun(t)
+	t.Cleanup(r.c.Close)
+	if err := r.c.SavePlanApprovalSettings(true); err != nil {
+		t.Fatal(err)
+	}
+	deadline, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	ctx := context.WithValue(deadline, workModeContextKey{}, WorkModeAgentPlanner)
+	started := false
+	err := (plannerPlanApprover{c: r.c}).RunWithPlannerApproval(ctx, "Plan:\n1. Make one change", func(context.Context) error {
+		started = true
+		if r.c.approval.planAutoApprove {
+			t.Error("plan approval enabled tool auto-approval")
+		}
+		return nil
+	})
+	if err != nil || !started || len(r.cards) != 0 {
+		t.Fatalf("approved execution started = %v, cards = %d, error = %v", started, len(r.cards), err)
+	}
+}
 
 type planRun struct {
 	c       *Controller

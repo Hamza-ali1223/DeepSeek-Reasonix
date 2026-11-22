@@ -32,6 +32,7 @@ type plannerTurnMetadata struct {
 	UserText         string
 	Synthetic        bool
 	ExplicitPlanMode bool
+	WorkMode         WorkMode
 	Policy           taskpolicy.TaskPolicy
 	PolicySet        bool
 }
@@ -51,18 +52,31 @@ func plannerTurnMetadataFromContext(ctx context.Context) (plannerTurnMetadata, b
 }
 
 func (c *Controller) withPlannerTurnMetadata(ctx context.Context, userText string, synthetic bool) context.Context {
+	workMode := workModeFromContext(ctx)
+	explicitCollaboration := eligibleAgentPlannerTurn(workMode, userText, synthetic)
+	planMode := c.PlanMode() && !explicitCollaboration
 	policy := taskpolicy.Derive(taskpolicy.Input{
 		Preset:   agentpreset.Normalize(c.AgentPreset()),
-		PlanMode: c.PlanMode(),
+		PlanMode: planMode,
 	})
 	ctx = taskpolicy.WithContext(ctx, policy)
 	return withPlannerTurnMetadata(ctx, plannerTurnMetadata{
 		UserText:         userText,
 		Synthetic:        synthetic,
-		ExplicitPlanMode: c.PlanMode(),
+		ExplicitPlanMode: planMode,
+		WorkMode:         workMode,
 		Policy:           policy,
 		PolicySet:        true,
 	})
+}
+
+// eligibleAgentPlannerTurn is the common raw-input boundary for the typed
+// collaboration intent. Host-generated, empty, and control turns keep the
+// normal Plan workflow even when their parent queue item carried this mode.
+func eligibleAgentPlannerTurn(mode WorkMode, userText string, synthetic bool) bool {
+	text := strings.TrimSpace(sessionstore.StripTransientUserBlocks(userText))
+	return mode == WorkModeAgentPlanner && !synthetic && text != "" &&
+		!strings.HasPrefix(text, "/") && !IsSyntheticUserMessage(text)
 }
 
 // DecidePlannerRoute routes a turn to the two-model planner only when the user
@@ -75,9 +89,6 @@ func DecidePlannerRoute(ctx context.Context, input string) agent.PlannerDecision
 		text = strings.TrimSpace(meta.UserText)
 	}
 
-	if meta.ExplicitPlanMode || strings.HasPrefix(composedText, PlanModeMarker) {
-		return plannerExecutorDecision(plannerReasonExplicitPlanMode)
-	}
 	if meta.Synthetic || IsSyntheticUserMessage(text) {
 		return plannerExecutorDecision(plannerReasonSynthetic)
 	}
@@ -86,6 +97,12 @@ func DecidePlannerRoute(ctx context.Context, input string) agent.PlannerDecision
 	}
 	if strings.HasPrefix(text, "/") {
 		return plannerExecutorDecision(plannerReasonSlash)
+	}
+	if eligibleAgentPlannerTurn(meta.WorkMode, text, meta.Synthetic) {
+		return plannerPlanDecision(agent.PlannerRoutePlanForApproval, agent.PlannerDepthFull, "agent_planner")
+	}
+	if meta.ExplicitPlanMode || strings.HasPrefix(composedText, PlanModeMarker) {
+		return plannerExecutorDecision(plannerReasonExplicitPlanMode)
 	}
 
 	if strings.HasPrefix(composedText, PlannerRouteMarker) {

@@ -64,6 +64,9 @@ func (a *Agent) beginRunTurn(ctx context.Context, input string) (rawInput string
 	// values are computed below. Cross-turn state (checkpoint, scope, failure
 	// budgets) lives in taskRuntime and is reconciled there.
 	a.turn = turnRuntime{}
+	if runtime, ok := ctx.Value(turnPlanRuntimeContextKey{}).(*planmode.Runtime); ok {
+		a.turn.planRuntime = runtime
+	}
 	scope, scoped := DeliveryExecutionScopeFromContext(ctx)
 	preserveEvidence := a.pending.preserveEvidence
 	// A run that starts with a pending readiness recovery (or an explicit
@@ -221,7 +224,7 @@ func (a *Agent) runToolLoop(ctx context.Context, state *turnRuntime) error {
 		// Prefix shape is captured once before sampling and frozen for the
 		// whole attempt lifecycle — stream retries must not rewrite session
 		// history mid-round, so the shape stays stable across body replays.
-		authority := a.plan().State() // before sampling: a mid-round move cannot admit this
+		authority := a.activePlan().State() // before sampling: a mid-round move cannot admit this
 		streamed := a.streamWithSamplingRecovery(ctx, step+1)
 		text, reasoning, signature, calls, responsesItems, usage := streamed.text, streamed.reasoning, streamed.signature, streamed.calls, streamed.responsesItems, streamed.usage
 		partialCalls, err := streamed.partialCalls, streamed.err

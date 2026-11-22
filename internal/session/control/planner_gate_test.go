@@ -82,6 +82,69 @@ func TestPlannerMarkerRoutesToThePlanner(t *testing.T) {
 	}
 }
 
+func TestTypedAgentPlannerIntentRoutesToApproval(t *testing.T) {
+	ctx := withPlannerTurnMetadata(context.Background(), plannerTurnMetadata{
+		UserText: "implement the feature",
+		WorkMode: WorkModeAgentPlanner,
+	})
+	got := DecidePlannerRoute(ctx, "implement the feature")
+	if got.Route != agent.PlannerRoutePlanForApproval || got.Depth != agent.PlannerDepthFull {
+		t.Fatalf("typed Agent + Planner intent = %+v, want full plan with approval", got)
+	}
+}
+
+func TestCapturedAgentPlannerIntentOverridesCurrentPlanToggle(t *testing.T) {
+	ctx := withPlannerTurnMetadata(context.Background(), plannerTurnMetadata{
+		UserText:         "implement the feature",
+		ExplicitPlanMode: true,
+		WorkMode:         WorkModeAgentPlanner,
+	})
+	got := DecidePlannerRoute(ctx, PlanModeMarker+"\n\nimplement the feature")
+	if got.Route != agent.PlannerRoutePlanForApproval {
+		t.Fatalf("captured work mode = %+v, want Agent + Planner despite the current toggle", got)
+	}
+}
+
+func TestTypedAgentPlannerIntentDoesNotRouteSyntheticOrControlInput(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		text string
+		meta plannerTurnMetadata
+	}{
+		{name: "synthetic", text: "implement the feature", meta: plannerTurnMetadata{Synthetic: true, WorkMode: WorkModeAgentPlanner}},
+		{name: "slash command", text: "/tree", meta: plannerTurnMetadata{WorkMode: WorkModeAgentPlanner}},
+		{name: "empty", text: " ", meta: plannerTurnMetadata{WorkMode: WorkModeAgentPlanner}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := DecidePlannerRoute(withPlannerTurnMetadata(context.Background(), tc.meta), tc.text)
+			if got.Route != agent.PlannerRouteExecutorOnly {
+				t.Fatalf("intent overrode %s guard: %+v", tc.name, got)
+			}
+		})
+	}
+}
+
+func TestAgentPlannerEligibilityMatchesRawTurnGuards(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		text      string
+		synthetic bool
+		want      bool
+	}{
+		{name: "normal user turn", text: "implement the feature", want: true},
+		{name: "host synthetic", text: "implement the feature", synthetic: true},
+		{name: "empty", text: "  "},
+		{name: "slash control", text: "/tree"},
+		{name: "synthetic message", text: planApprovedMessage},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := eligibleAgentPlannerTurn(WorkModeAgentPlanner, tc.text, tc.synthetic); got != tc.want {
+				t.Fatalf("eligibleAgentPlannerTurn = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
 // The leading-directive tables this replaced matched a prefix with no word
 // boundary and no idea what the sentence was about, so six of nine probed
 // requests routed to the planner when they asked for ordinary work. Every one

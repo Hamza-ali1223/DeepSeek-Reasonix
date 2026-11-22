@@ -40,6 +40,7 @@ type InboxRequest struct {
 	Raw           string
 	Submit        string
 	Format        string
+	WorkMode      WorkMode
 	Source        string
 	Idempotency   string
 	Invocations   []InvocationRequest
@@ -318,6 +319,9 @@ func (c *Controller) pauseInboxOnRotate() {
 // EnqueueInbox durably queues an instruction. Only returns a receipt after
 // blob+manifest commit. Does not auto-start a turn (call TrySubmit / dispatcher).
 func (c *Controller) EnqueueInbox(req InboxRequest) (sessioninbox.InboxReceipt, error) {
+	if !req.WorkMode.Valid() {
+		return sessioninbox.InboxReceipt{}, ErrUnsupportedWorkMode
+	}
 	c.compositionMutationMu.Lock()
 	defer c.compositionMutationMu.Unlock()
 	if err := c.compositionEnqueueReady(); err != nil {
@@ -341,6 +345,7 @@ func (c *Controller) EnqueueInbox(req InboxRequest) (sessioninbox.InboxReceipt, 
 		RawText:      raw,
 		SubmitText:   submit,
 		Format:       req.Format,
+		WorkMode:     string(req.WorkMode),
 		Source:       req.Source,
 		Idempotency:  req.Idempotency,
 		ExplicitRefs: append([]string(nil), req.FreezeRefs...),
@@ -437,6 +442,7 @@ func (c *Controller) UpdateInboxItem(id, display, raw, submit string) (sessionin
 		RawText:      raw,
 		SubmitText:   submit,
 		Format:       previous.Format,
+		WorkMode:     previous.WorkMode,
 		Source:       previous.Source,
 		ExplicitRefs: append([]string(nil), previous.ExplicitRefs...),
 		Invocation:   previous.Invocation,

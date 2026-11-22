@@ -116,7 +116,7 @@ func (a *Agent) assertPlanPhaseAdmitted(plan *toolCallPlan) (toolOutcome, bool) 
 	if !a.PlanningPhase() {
 		return toolOutcome{}, false
 	}
-	if plan.admission != nil && plan.admission.Epoch == a.plan().State().Epoch {
+	if plan.admission != nil && plan.admission.Epoch == a.activePlan().State().Epoch {
 		return toolOutcome{}, false
 	}
 	return toolOutcome{
@@ -140,10 +140,28 @@ func (a *Agent) plan() *planmode.Runtime {
 	return a.planRuntime.Load()
 }
 
+type turnPlanRuntimeContextKey struct{}
+
+// WithTurnPlanRuntime gives one Agent.Run its own plan phase authority. Hosts
+// use this for explicit per-turn workflows that must not mutate session mode.
+func WithTurnPlanRuntime(ctx context.Context, runtime *planmode.Runtime) context.Context {
+	if runtime == nil {
+		return ctx
+	}
+	return context.WithValue(ctx, turnPlanRuntimeContextKey{}, runtime)
+}
+
+func (a *Agent) activePlan() *planmode.Runtime {
+	if a != nil && a.turn.planRuntime != nil {
+		return a.turn.planRuntime
+	}
+	return a.plan()
+}
+
 // PlanningPhase reports whether side effects are still waiting for approval.
 // Executing is inside the workflow too, which is why Active is not the question.
 func (a *Agent) PlanningPhase() bool {
-	switch a.plan().State().Phase {
+	switch a.activePlan().State().Phase {
 	case planmode.Planning, planmode.AwaitingApproval:
 		return true
 	}
@@ -154,7 +172,7 @@ func (a *Agent) PlanningPhase() bool {
 // authority. The execution boundary re-reads the token; it never re-derives the
 // verdict, so classification still happens exactly once.
 func (p *toolCallPlan) admitPlanPhase(a *Agent) {
-	state := a.plan().State()
+	state := a.activePlan().State()
 	p.admission = &state
 }
 
@@ -167,7 +185,7 @@ func (a *Agent) rejectStaleAuthority(ctx context.Context) (toolOutcome, bool) {
 	if !stamped {
 		return toolOutcome{}, false
 	}
-	current := a.plan().State()
+	current := a.activePlan().State()
 	if origin.Epoch == current.Epoch {
 		return toolOutcome{}, false
 	}

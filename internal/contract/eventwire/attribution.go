@@ -9,7 +9,11 @@ func wireModelRef(e event.Event) string {
 	switch e.Kind {
 	case event.TurnStarted:
 		return e.ModelRef
-	case event.Text, event.Message:
+	case event.Phase:
+		if e.Code != "" {
+			return e.ModelRef
+		}
+	case event.Text, event.Message, event.Reasoning:
 		if e.Source != "" {
 			return e.ModelRef
 		}

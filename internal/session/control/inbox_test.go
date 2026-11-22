@@ -52,6 +52,36 @@ func TestInboxMutationsReachTheEventStream(t *testing.T) {
 	waitForKind(t, sink, event.InboxChanged, 2)
 }
 
+func TestQueuedWorkModeSurvivesUpdateAndControllerReopen(t *testing.T) {
+	dir := testenv.TempDir(t)
+	session := filepath.Join(dir, "s.jsonl")
+	if err := os.WriteFile(session, []byte("{}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	c := New(Options{SessionPath: session, SessionDir: dir, Sink: event.Discard})
+	rec, err := c.EnqueueInbox(InboxRequest{
+		Intent: sessioninbox.IntentFollowup, Display: "queued", Submit: "queued",
+		WorkMode: WorkModeAgentPlanner, Source: "test",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.UpdateInboxItem(rec.ItemID, "edited", "edited", "edited"); err != nil {
+		t.Fatal(err)
+	}
+	c.Close()
+
+	reopened := New(Options{SessionPath: session, SessionDir: dir, Sink: event.Discard})
+	defer reopened.Close()
+	_, env, err := reopened.ReadInboxItem(rec.ItemID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env.WorkMode != string(WorkModeAgentPlanner) {
+		t.Fatalf("reopened work mode = %q, want %q", env.WorkMode, WorkModeAgentPlanner)
+	}
+}
+
 func waitForKind(t *testing.T, sink *noticeSink, kind event.Kind, want int) {
 	t.Helper()
 	for deadline := time.Now().Add(testenv.Budget(t)); time.Now().Before(deadline); {
