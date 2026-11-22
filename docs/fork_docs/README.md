@@ -20,6 +20,7 @@ belongs in this folder, so the shared tree stays portable back upstream.
 | --- | --- |
 | `FORK_STATE.md` | What this fork ships, what is broken on it, what work is open |
 | `MAINTAINER.md` | How its maintainer decides, what is refused, what a review looks for |
+| `agent+planner-mode-spec.md` | What explicit planner routing, consultation, and role settings must do |
 
 ## Rules a new file here is most likely to break
 
