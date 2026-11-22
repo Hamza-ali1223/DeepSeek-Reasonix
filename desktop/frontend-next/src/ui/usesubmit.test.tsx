@@ -67,6 +67,27 @@ describe("useSubmit", () => {
     expect(submit).toHaveBeenCalledWith("idle", undefined);
   });
 
+  it("passes Agent + Planner as per-submission intent on a direct submit", async () => {
+    const submit = vi.fn(async () => undefined);
+    const port = { submit } as unknown as AgentPort;
+    const { result } = renderHook(() => useSubmit({ port, running: false, dispatch: vi.fn(), trajDispatch: vi.fn(), refreshStatus: vi.fn(), fail: vi.fn() }));
+    const send = result.current as (text: string, chips?: unknown, workMode?: string) => Promise<boolean | "shell_unavailable">;
+    expect(await send("implement this", undefined, "agent_planner")).toBe(true);
+    expect(submit).toHaveBeenCalledWith("implement this", undefined, "agent_planner");
+  });
+
+  it("passes Agent + Planner as per-submission intent into the durable follow-up queue", async () => {
+    setRunningMessageIntent("followup");
+    const queueFollowup = vi.fn(async () => ({ itemId: "queued-1", disposition: "queued_followup" }));
+    const port = { queueFollowup } as unknown as AgentPort;
+    const dispatch = vi.fn();
+    const { result } = renderHook(() => useSubmit({ port, running: true, dispatch, trajDispatch: vi.fn(), refreshStatus: vi.fn(), fail: vi.fn() }));
+    const send = result.current as (text: string, chips?: unknown, workMode?: string) => Promise<boolean | "shell_unavailable">;
+    expect(await send("do this after", undefined, "agent_planner")).toBe(true);
+    expect(queueFollowup).toHaveBeenCalledWith("do this after", undefined, "agent_planner");
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ kind: "__queued", queued: "followup", itemId: "queued-1" }));
+  });
+
   it("keeps skill invocations as follow-ups even with steering selected", async () => {
     const port = { steer: vi.fn(), queueFollowup: vi.fn(async () => ({ itemId: "skill" })) };
     const dispatch = vi.fn();

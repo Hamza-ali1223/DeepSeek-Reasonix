@@ -12,6 +12,8 @@ export const COMPOSER: Messages = {
   "composer.adopt": { zh: "采用", en: "Adopt" },
   "composer.an_attachment_failed_retry_or": { zh: "有附件添加失败，请重试或移除", en: "An attachment failed; retry or remove it" },
   "composer.answering": { zh: "正在回答", en: "Answering" },
+  "composer.agent_plus_planner": { zh: "智能体 + 规划器", en: "Agent + Planner" },
+  "composer.plan_with_dedicated_model_before_execution": { zh: "先由专用规划模型整理，再交给智能体执行", en: "Plan with the dedicated model before the agent executes" },
   "composer.answers_chat_but_refuses_tool": { zh: "能对话但不接受工具调用，用不了", en: "Answers chat but refuses tool calls, so it cannot run here" },
   "composer.ask": { zh: "提问…", en: "Ask…" },
   "composer.ask_about_this_code_or": { zh: "在这里问关于这段代码、这个报错的问题：它只能读文件和搜索，不会改动任何东西。", en: "Ask about this code or this error here: it can only read files and search, and changes nothing." },

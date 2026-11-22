@@ -35,7 +35,7 @@ const retryable = (it: QueueItem) =>
 // Only plain text can become guidance: a picture or a frozen file reference
 // travels with a whole turn.
 const steerable = (it: QueueItem) =>
-  it.origin !== "host" && it.state === "queued" && it.intent === "followup" && !it.images && !it.refs?.length;
+  it.origin !== "host" && it.state === "queued" && it.intent === "followup" && !it.workMode && !it.images && !it.refs?.length;
 
 /** What the strip draws: the lines nobody has acted on yet. The header's count
  *  of guidance in flight reads this too, so it can never name a line the strip

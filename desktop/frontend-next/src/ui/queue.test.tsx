@@ -72,6 +72,12 @@ describe("queue strip", () => {
     expect(draw(snapshot({ items: [item({ state: "queued", intent: "followup", refs: [{ path: "a.go" }] })] }))).not.toContain("queue.to-steer");
   });
 
+  it("does not convert an Agent + Planner request into running-turn guidance", () => {
+    const html = draw(snapshot({ items: [item({ state: "queued", intent: "followup", workMode: "agent_planner" })] }));
+    expect(html).toContain("queue.send-now");
+    expect(html).not.toContain("queue.to-steer");
+  });
+
   it("leaves out guidance the transcript already shows as its own bubble", () => {
     expect(paint(snapshot(), true, new Set(["i1"]))).toBe("");
   });

@@ -8,7 +8,7 @@ import { MockPort } from "../port/mock";
 import { SsePort } from "../port/sse";
 import { host } from "../port/host";
 import { DeliveryError, HttpError } from "../port/port";
-import type { AgentPort, ApprovalMode, Attachment, Completion, ModelEntry, Preset, SessionStatus, WorkspaceGit } from "../port/port";
+import type { AgentPort, ApprovalMode, Attachment, ChipCall, Completion, ModelEntry, Preset, SessionStatus, WorkMode, WorkspaceGit } from "../port/port";
 import { draftKey } from "./drafts";
 
 afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); });
@@ -96,7 +96,7 @@ function touchPointer() {
 }
 
 function draw(
-  over: { running?: boolean; onSubmit?: (text: string) => Promise<boolean | "shell_unavailable">; port?: MockPort; st?: SessionStatus; changeCount?: number; host?: string; git?: WorkspaceGit | null; onTreeChanged?: () => void } = {},
+  over: { running?: boolean; onSubmit?: (text: string, chips?: ChipCall, workMode?: WorkMode) => Promise<boolean | "shell_unavailable">; port?: MockPort; st?: SessionStatus; changeCount?: number; host?: string; git?: WorkspaceGit | null; onTreeChanged?: () => void } = {},
 ) {
   const port = over.port ?? new MockPort();
   const onSubmit = over.onSubmit ?? vi.fn(async () => true);
@@ -126,6 +126,37 @@ describe("composer submission", () => {
     expect((screen.getByRole("button", { name: "发送" }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.change(box, { target: { value: "检查这次改动", selectionStart: 6 } });
     expect((screen.getByRole("button", { name: "发送" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("selects Agent + Planner for this submission and keeps the selection after sending", async () => {
+    const onSubmit = vi.fn(async (..._args: unknown[]) => true);
+    const { box, container } = draw({ onSubmit });
+    fireEvent.click(container.querySelector('[data-action="plan.mode"]')!);
+    const plannerChoice = await waitFor(() => {
+      const choice = document.querySelector('[role="menu"] [data-value="agent_planner"]');
+      if (!choice) throw new Error("Agent + Planner choice is not available");
+      return choice;
+    });
+    fireEvent.click(plannerChoice);
+    expect(container.querySelector('[data-action="plan.mode"]')?.textContent).toMatch(/智能体 \+ 规划器|Agent \+ Planner/);
+
+    fireEvent.change(box, { target: { value: "implement this", selectionStart: 14 } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith("implement this", undefined, "agent_planner"));
+    expect(container.querySelector('[data-action="plan.mode"]')?.textContent).toMatch(/智能体 \+ 规划器|Agent \+ Planner/);
+  });
+
+  it("keeps Plan selection on the existing plan-mode setting path", async () => {
+    const port = new MockPort();
+    const setPlan = vi.spyOn(port, "setPlanMode").mockResolvedValue();
+    const { container } = draw({ port });
+    fireEvent.click(container.querySelector('[data-action="plan.mode"]')!);
+    fireEvent.click(await waitFor(() => {
+      const choice = document.querySelector('[role="menu"] [data-value="plan"]');
+      if (!choice) throw new Error("Plan choice is not available");
+      return choice;
+    }));
+    await waitFor(() => expect(setPlan).toHaveBeenCalledWith(true));
   });
 
   it("keeps Enter in the textarea when a touch-first pointer has focus", () => {
