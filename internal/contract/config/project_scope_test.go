@@ -64,6 +64,18 @@ func TestProjectCannotTurnBashSandboxOff(t *testing.T) {
 	}
 }
 
+func TestPlannerConsultationIsUserOnly(t *testing.T) {
+	cfg, _ := loadScoped(t, "", "[agent]\nplanner_consultation = true\nplanner_consultation_limit = 8\n")
+	if cfg.Agent.PlannerConsultation || cfg.Agent.PlannerConsultationLimit != 1 {
+		t.Fatalf("project changed planner consultation settings: enabled=%v limit=%d", cfg.Agent.PlannerConsultation, cfg.Agent.PlannerConsultationLimit)
+	}
+	for _, key := range []string{"agent.planner_consultation", "agent.planner_consultation_limit"} {
+		if !slices.Contains(ignoredKeys(cfg), key) {
+			t.Errorf("ignored project settings missing %q: %v", key, ignoredKeys(cfg))
+		}
+	}
+}
+
 func TestProjectMayTurnBashSandboxOn(t *testing.T) {
 	cfg, _ := loadScoped(t, "[sandbox]\nbash = \"off\"\n", "[sandbox]\nbash = \"enforce\"\n")
 	if cfg.Sandbox.Bash != "enforce" {

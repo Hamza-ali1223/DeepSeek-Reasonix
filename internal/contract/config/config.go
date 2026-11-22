@@ -1039,14 +1039,17 @@ type AgentConfig struct {
 	// Deprecated compatibility fields. Old TOML and desktop clients may still
 	// send them, but config loading normalizes both to zero and rendering omits
 	// them. The one-off CLI limit remains a separate control.
-	MaxSteps            int               `toml:"max_steps"`
-	PlannerMaxSteps     int               `toml:"planner_max_steps"`
-	Temperature         float64           `toml:"temperature"`
-	PlannerModel        string            `toml:"planner_model"`
-	TitleModel          string            `toml:"title_model"`
-	RoleEfforts         map[string]string `toml:"role_efforts"`
-	GuardianModel       string            `toml:"guardian_model"`
-	GuardianTemperature float64           `toml:"guardian_temperature"`
+	MaxSteps                 int               `toml:"max_steps"`
+	PlannerMaxSteps          int               `toml:"planner_max_steps"`
+	Temperature              float64           `toml:"temperature"`
+	PlannerModel             string            `toml:"planner_model"`
+	PlannerConsultation      bool              `toml:"planner_consultation"`
+	PlannerConsultationLimit int               `toml:"planner_consultation_limit"`
+	PlannerTools             []string          `toml:"planner_tools"`
+	TitleModel               string            `toml:"title_model"`
+	RoleEfforts              map[string]string `toml:"role_efforts"`
+	GuardianModel            string            `toml:"guardian_model"`
+	GuardianTemperature      float64           `toml:"guardian_temperature"`
 	// RecoveryModel optionally names a dedicated model for the independent
 	// recovery reviewer. Empty falls back to GuardianModel, then the main model.
 	RecoveryModel string `toml:"recovery_model"`
@@ -1332,9 +1335,10 @@ func Default() *Config {
 			SystemPrompt: DefaultSystemPrompt,
 			// No total round cap, and nothing else bounds a turn by default: the
 			// task budgets below ship off and the round guards were retired.
-			MaxSteps:        0,
-			PlannerMaxSteps: 0,
-			AutoPlan:        "off",
+			MaxSteps:                 0,
+			PlannerMaxSteps:          0,
+			PlannerConsultationLimit: 1,
+			AutoPlan:                 "off",
 			// Soft/snip/force are load-only compatibility; CompactRatio alone drives maintenance.
 			CompactRatio:           0.90,
 			MaxSubagentDepth:       8,

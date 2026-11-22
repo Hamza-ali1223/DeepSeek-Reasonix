@@ -25,6 +25,21 @@ func renderAgentDelegation(b *strings.Builder, c *Config) {
 	} else {
 		b.WriteString("# planner_model = \"deepseek-pro\"   # optional: enable two-model collaboration\n")
 	}
+	if c.Agent.PlannerConsultation {
+		b.WriteString("planner_consultation = true   # allow the executor to consult the planner during a turn\n")
+	} else {
+		b.WriteString("# planner_consultation = true   # allow the executor to consult the planner during a turn\n")
+	}
+	if c.Agent.PlannerConsultationLimit > 1 {
+		fmt.Fprintf(b, "planner_consultation_limit = %d   # maximum consultations per executor turn (1-8)\n", c.Agent.PlannerConsultationLimit)
+	} else {
+		b.WriteString("# planner_consultation_limit = 1   # maximum consultations per executor turn (1-8)\n")
+	}
+	if len(c.Agent.PlannerTools) > 0 {
+		fmt.Fprintf(b, "planner_tools = %s   # optional allowlist of read-only planner tools and MCP capability IDs\n", renderStringArray(c.Agent.PlannerTools))
+	} else {
+		b.WriteString("# planner_tools = [\"read_file\", \"mcp-server:docs\", \"mcp-tool:github/search\"]   # optional planner research allowlist; empty keeps defaults\n")
+	}
 	if c.Agent.SubagentModel != "" {
 		fmt.Fprintf(b, "subagent_model = %q   # default model for runAs=subagent skills\n", c.Agent.SubagentModel)
 	} else {

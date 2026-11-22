@@ -18,27 +18,30 @@ import (
 // may narrow these grants and never widen them. The slices are copies because
 // decoding the project file writes into the arrays the user's decode left.
 type heldScope struct {
-	attachments    AttachmentsConfig
-	sandbox        SandboxConfig
-	permissions    PermissionsConfig
-	approvalMode   string
-	updateMode     string
-	autoSubmit     bool
-	writeLease     string
-	planApproval   string
-	defaultMode    string
-	toolsDisabled  []string
-	limits         agentLimits
-	goalAutoRetry  int
-	subagentClaims string
-	shell          ShellConfig
-	rgPath         string
-	lsp            map[string]LSPServer
-	browser        BrowserConfig
-	network        NetworkConfig
-	endpoints      heldEndpoints
-	layaPython     string
-	layaLocal      bool
+	attachments              AttachmentsConfig
+	sandbox                  SandboxConfig
+	permissions              PermissionsConfig
+	approvalMode             string
+	updateMode               string
+	autoSubmit               bool
+	writeLease               string
+	planApproval             string
+	plannerConsultation      bool
+	plannerConsultationLimit int
+	plannerTools             []string
+	defaultMode              string
+	toolsDisabled            []string
+	limits                   agentLimits
+	goalAutoRetry            int
+	subagentClaims           string
+	shell                    ShellConfig
+	rgPath                   string
+	lsp                      map[string]LSPServer
+	browser                  BrowserConfig
+	network                  NetworkConfig
+	endpoints                heldEndpoints
+	layaPython               string
+	layaLocal                bool
 	// rememberDevices is the user's [serve] remember_paired_devices. A project
 	// may not set it: a cloned repo must not be able to make a phone the person
 	// paired with stay trusted longer than they chose.
@@ -78,35 +81,38 @@ func holdUserScope(c *Config) heldScope {
 	shell.Env = maps.Clone(shell.Env)
 	shell.Args = slices.Clone(shell.Args)
 	return heldScope{
-		attachments:     cloneAttachments(c.Attachments),
-		sandbox:         s,
-		permissions:     p,
-		approvalMode:    c.Desktop.DefaultToolApprovalMode,
-		updateMode:      c.chosenUpdateMode(),
-		autoSubmit:      c.AutoSubmit,
-		writeLease:      c.Agent.WriteLease,
-		planApproval:    c.Agent.PlanApproval,
-		defaultMode:     c.Agent.DefaultMode,
-		toolsDisabled:   c.DisabledTools(),
-		limits:          holdAgentLimits(c),
-		goalAutoRetry:   c.Agent.GoalAutoRetry,
-		subagentClaims:  c.Agent.SubagentClaims,
-		shell:           shell,
-		rgPath:          c.Tools.Search.RgPath,
-		lsp:             maps.Clone(c.LSP.Servers),
-		browser:         c.Browser,
-		network:         c.Network,
-		endpoints:       holdUserEndpoints(c),
-		layaPython:      c.Tools.SystemOne.Laya.Python,
-		layaLocal:       c.Tools.SystemOne.Laya.Local,
-		rememberDevices: c.Serve.RememberPairedDevices,
-		turnNarration:   c.TurnNarration(),
-		persona:         clonePersona(c.Agent.Persona),
-		peers:           clonePeers(c.Peers),
-		observability:   c.Observability,
-		mods:            c.Mods,
-		mcpResources:    c.Tools.MCPResources,
-		presentFiles:    c.Tools.PresentFiles,
+		attachments:              cloneAttachments(c.Attachments),
+		sandbox:                  s,
+		permissions:              p,
+		approvalMode:             c.Desktop.DefaultToolApprovalMode,
+		updateMode:               c.chosenUpdateMode(),
+		autoSubmit:               c.AutoSubmit,
+		writeLease:               c.Agent.WriteLease,
+		planApproval:             c.Agent.PlanApproval,
+		plannerConsultation:      c.Agent.PlannerConsultation,
+		plannerConsultationLimit: c.Agent.PlannerConsultationLimit,
+		plannerTools:             slices.Clone(c.Agent.PlannerTools),
+		defaultMode:              c.Agent.DefaultMode,
+		toolsDisabled:            c.DisabledTools(),
+		limits:                   holdAgentLimits(c),
+		goalAutoRetry:            c.Agent.GoalAutoRetry,
+		subagentClaims:           c.Agent.SubagentClaims,
+		shell:                    shell,
+		rgPath:                   c.Tools.Search.RgPath,
+		lsp:                      maps.Clone(c.LSP.Servers),
+		browser:                  c.Browser,
+		network:                  c.Network,
+		endpoints:                holdUserEndpoints(c),
+		layaPython:               c.Tools.SystemOne.Laya.Python,
+		layaLocal:                c.Tools.SystemOne.Laya.Local,
+		rememberDevices:          c.Serve.RememberPairedDevices,
+		turnNarration:            c.TurnNarration(),
+		persona:                  clonePersona(c.Agent.Persona),
+		peers:                    clonePeers(c.Peers),
+		observability:            c.Observability,
+		mods:                     c.Mods,
+		mcpResources:             c.Tools.MCPResources,
+		presentFiles:             c.Tools.PresentFiles,
 
 		webSearchBackends: slices.Clone(c.Tools.WebSearchBackends),
 		searxngURL:        c.Tools.SearxngURL,
@@ -243,6 +249,11 @@ func (h heldScope) narrow(c *Config, r Roots, root string, projectMeta toml.Meta
 		c.ignoreProject("agent.plan_approval", c.Agent.PlanApproval, ProjectUserOnly)
 		c.Agent.PlanApproval = h.planApproval
 	}
+	if c.Agent.PlannerConsultation != h.plannerConsultation {
+		c.ignoreProject("agent.planner_consultation", fmt.Sprintf("%t", c.Agent.PlannerConsultation), ProjectUserOnly)
+		c.Agent.PlannerConsultation = h.plannerConsultation
+	}
+	h.narrowPlannerLimits(c)
 	if c.Agent.DefaultMode != h.defaultMode {
 		c.ignoreProject("agent.default_mode", c.Agent.DefaultMode, ProjectUserOnly)
 		c.Agent.DefaultMode = h.defaultMode
@@ -302,6 +313,17 @@ func (h heldScope) narrow(c *Config, r Roots, root string, projectMeta toml.Meta
 		c.Tools.Shell.Args = nil
 	}
 	h.endpoints.gateEndpoints(c, store, ws)
+}
+
+func (h heldScope) narrowPlannerLimits(c *Config) {
+	if c.Agent.PlannerConsultationLimit != h.plannerConsultationLimit {
+		c.ignoreProject("agent.planner_consultation_limit", fmt.Sprintf("%d", c.Agent.PlannerConsultationLimit), ProjectUserOnly)
+		c.Agent.PlannerConsultationLimit = h.plannerConsultationLimit
+	}
+	if !slices.Equal(c.Agent.PlannerTools, h.plannerTools) {
+		c.ignoreProject("agent.planner_tools", fmt.Sprint(c.Agent.PlannerTools), ProjectUserOnly)
+		c.Agent.PlannerTools = slices.Clone(h.plannerTools)
+	}
 }
 
 // applyWorkspaceGrants adds what the user already granted this workspace, and
