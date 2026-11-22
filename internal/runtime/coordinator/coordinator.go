@@ -3,8 +3,6 @@ package coordinator
 import (
 	"context"
 	"fmt"
-	"reasonix/internal/runtime/agent"
-	"reasonix/internal/state/sessionstore"
 	"strings"
 	"time"
 
@@ -14,8 +12,10 @@ import (
 	"reasonix/internal/contract/provider"
 	"reasonix/internal/contract/tool"
 	"reasonix/internal/runtime/plancontract"
+	"reasonix/internal/runtime/agent"
 	"reasonix/internal/safety/sandbox"
 )
+	"reasonix/internal/state/sessionstore"
 
 // DefaultPlannerPrompt steers the planner toward concise plans, not execution.
 const DefaultPlannerPrompt = `You are the planner in a two-model coding agent.
@@ -149,7 +149,7 @@ func newCoordinator(planner provider.Provider, plannerSession *sessionstore.Sess
 		plannerOptions.Temperature = temperature
 		plannerOptions.Pricing = plannerPricing
 		plannerOptions.UsageSource = event.UsageSourcePlanner
-		plannerAgent = agent.NewPlannerAgent(planner, plannerTools, plannerSession, plannerOptions, plannerSink(sink))
+		plannerAgent = agent.NewPlannerAgent(planner, plannerTools, plannerSession, plannerOptions, plannerSink(sink, plannerOptions.ModelRef))
 	}
 	if executor != nil {
 		executor.MarkExecutorHandoff()
@@ -344,7 +344,11 @@ func (c *Coordinator) Run(ctx context.Context, input string) error {
 		c.sink.Emit(event.Event{Kind: event.Phase, Text: c.executor.ProviderName() + " · executing", Detail: routeDetail, Source: event.UsageSourceExecutor})
 		return c.runExecutor(ctx, input, false)
 	}
-	c.sink.Emit(event.Event{Kind: event.Phase, Text: c.planner.Name() + " · planning", Detail: routeDetail, Source: event.UsageSourcePlanner, ModelRef: c.plannerModelRef})
+	phase := event.Event{Kind: event.Phase, Text: c.planner.Name() + " · planning", Detail: routeDetail, Source: event.UsageSourcePlanner, ModelRef: c.plannerModelRef}
+	if decision.Route == agent.PlannerRoutePlanForApproval {
+		phase.Code = "planner.requested"
+	}
+	c.sink.Emit(phase)
 	plannerCtx := tool.WithoutGoalTurnRecorder(ctx)
 	if decision.MaxResearchRounds > 0 {
 		plannerCtx = agent.WithRunStepLimit(plannerCtx, decision.MaxResearchRounds, "planner research rounds")
@@ -408,7 +412,11 @@ func (c *Coordinator) deliverPlan(ctx context.Context, input string, outcome pla
 		if outcome.exit == plannerExitPlan {
 			c.executor.SetPlanContract(&outcome.plan)
 		}
-		c.sink.Emit(event.Event{Kind: event.Phase, Text: c.executor.ProviderName() + " · executing", Source: event.UsageSourceExecutor})
+		phase := event.Event{Kind: event.Phase, Text: c.executor.ProviderName() + " · executing", Source: event.UsageSourceExecutor, ModelRef: c.executor.ModelRef()}
+		if decision.Route == agent.PlannerRoutePlanForApproval {
+			phase.Code = "planner.executor_starting"
+		}
+		c.sink.Emit(phase)
 		return c.runExecutor(ctx, formatHandoffWithDecision(input, planText, decision, executorToolHandoffContext(c.executor)), true)
 	}
 	runWithPlanApproval := func() error {
@@ -589,6 +597,7 @@ func (c *Coordinator) planWithTools(ctx context.Context, input string) (plannerO
 		// turn would leave a tool-call tail that the next provider request
 		// cannot safely resume.
 		c.rollbackPlannerTurn(before, rewriteBefore)
+	ctx = agent.WithHostTurnBoundary(ctx, agent.HostTurnBoundary{})
 		return plannerOutcome{}, err
 	}
 	// A submitted plan is the contract, whatever the planner said afterwards.
@@ -634,33 +643,6 @@ func plannerResearchPauseDetail(err error) string {
 		)
 	}
 	return "planner did not finalize after its bounded research and finalization rounds"
-}
-
-// plannerEventSink relabels the planner's stream and hides its turn
-// boundaries. A type, not a FuncSink: audits are delivered by type assertion,
-// and a func sink implements none of them.
-type plannerEventSink struct {
-	event.AuditForwarder
-	inner event.Sink
-}
-
-func (s plannerEventSink) Emit(e event.Event) {
-	switch e.Kind {
-	case event.TurnStarted, event.TurnDone:
-		return
-	default:
-		if e.Source == "" {
-			e.Source = event.UsageSourcePlanner
-		}
-		s.inner.Emit(e)
-	}
-}
-
-func plannerSink(sink event.Sink) event.Sink {
-	if nilutil.IsNil(sink) {
-		sink = event.Discard
-	}
-	return plannerEventSink{AuditForwarder: event.AuditForwarder{Inner: sink}, inner: sink}
 }
 
 func plannerTurnInput(input string, decision agent.PlannerDecision) string {

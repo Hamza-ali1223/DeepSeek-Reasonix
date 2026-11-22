@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"reasonix/internal/contract/planmode"
 	"reasonix/internal/runtime/taskpolicy"
 )
 
@@ -9,6 +10,11 @@ import (
 // State an external caller arms before a Run lives in pendingTurn; state that
 // outlives the Run lives in taskRuntime or sessionRuntime.
 type turnRuntime struct {
+	// planRuntime overrides session Plan for this Run only when the host has
+	// explicitly selected a collaboration turn. It never changes the session's
+	// user-visible Plan setting.
+	planRuntime *planmode.Runtime
+
 	runMaxSteps       int
 	runMaxStepsKey    string
 	runLimitHostOwned bool

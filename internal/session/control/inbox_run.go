@@ -53,6 +53,10 @@ func (c *Controller) RunInboxTurn(ctx context.Context, id string) error {
 // opens no checkpoint, starts no new recovery episode, and is not counted as
 // something the user said.
 func (c *Controller) prepareInboxRun(env sessioninbox.PromptEnvelope, origin sessioninbox.PromptOrigin) (func(context.Context) error, string, error) {
+	workMode := WorkMode(env.WorkMode)
+	if !workMode.Valid() {
+		return nil, "", ErrUnsupportedWorkMode
+	}
 	submit, frozenImages, block, err := applyInboxReferences(env)
 	if err != nil || block != "" {
 		return nil, block, err
@@ -65,7 +69,7 @@ func (c *Controller) prepareInboxRun(env sessioninbox.PromptEnvelope, origin ses
 	requests := controlInvocationsFromInbox(env)
 	if len(requests) == 0 {
 		return func(ctx context.Context) error {
-			return c.runTurnLoop(c.withTurnTags(ctx, turnTags{format: strings.TrimSpace(env.Format), via: env.Via}), orchestratedTurn{
+			return c.runTurnLoop(c.withTurnTags(ctx, turnTags{format: strings.TrimSpace(env.Format), via: env.Via, workMode: workMode}), orchestratedTurn{
 				input: submit, raw: raw, display: display, images: c.frozenTurnImages(frozenImages),
 				synthetic: origin.IsHost(), opensTurn: origin.IsHost(),
 			})
@@ -76,7 +80,7 @@ func (c *Controller) prepareInboxRun(env sessioninbox.PromptEnvelope, origin ses
 		return nil, err.Error(), nil
 	}
 	return func(ctx context.Context) error {
-		return c.runPreparedInvocationTurn(c.withTurnTags(ctx, turnTags{format: strings.TrimSpace(env.Format), via: env.Via}), prepared, submit, raw, display, frozenImages)
+		return c.runPreparedInvocationTurn(c.withTurnTags(ctx, turnTags{format: strings.TrimSpace(env.Format), via: env.Via, workMode: workMode}), prepared, submit, raw, display, frozenImages)
 	}, "", nil
 }
 

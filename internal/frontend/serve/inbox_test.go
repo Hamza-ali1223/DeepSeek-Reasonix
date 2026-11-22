@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"reasonix/internal/session/control"
@@ -36,5 +37,30 @@ func TestQueueRemovalRefusalsCarryTheirOwnCodes(t *testing.T) {
 		if body.Code != tc.code {
 			t.Fatalf("%v carried code %q, want %q", tc.err, body.Code, tc.code)
 		}
+	}
+}
+
+func TestInboxEnqueuePersistsTheSelectedWorkMode(t *testing.T) {
+	rig := newChipRig(t)
+	if err := rig.s.inboxAPI().SetInboxPaused(true); err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	rig.s.inboxEnqueue(rec, httptest.NewRequest(http.MethodPost, "/inbox/items", strings.NewReader(
+		`{"input":"queued work","workMode":"agent_planner"}`,
+	)))
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("POST /inbox/items = %d, want 202: %s", rec.Code, rec.Body.String())
+	}
+	var receipt sessioninbox.InboxReceipt
+	if err := json.Unmarshal(rec.Body.Bytes(), &receipt); err != nil {
+		t.Fatalf("decode receipt: %v", err)
+	}
+	_, env, err := rig.s.inboxAPI().ReadInboxItem(receipt.ItemID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env.WorkMode != string(control.WorkModeAgentPlanner) {
+		t.Fatalf("queued work mode = %q, want %q", env.WorkMode, control.WorkModeAgentPlanner)
 	}
 }

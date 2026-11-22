@@ -81,11 +81,12 @@ func (c *Controller) RunTurnWithRaw(ctx context.Context, input, raw, invokedSkil
 }
 
 // turnTags are what one submission carries into the turn it becomes: its
-// output format and the paired device it came from. They ride the turn's
+// output format, paired device, and explicit work mode. They ride the turn's
 // context, never a controller slot, so two requests cannot trade them.
 type turnTags struct {
-	format string
-	via    *provider.Via
+	format   string
+	via      *provider.Via
+	workMode WorkMode
 	// refuseUnknownSlash answers a slash command nothing resolves with a notice
 	// instead of sending the line to the model as prose.
 	refuseUnknownSlash bool
@@ -95,7 +96,11 @@ type turnViaKey struct{}
 
 // withTurnTags binds a submission's tags to the turn context.
 func (c *Controller) withTurnTags(ctx context.Context, tags turnTags) context.Context {
-	return withTurnVia(c.withTurnFormat(ctx, tags.format), tags.via)
+	ctx = withTurnVia(c.withTurnFormat(ctx, tags.format), tags.via)
+	if tags.workMode != WorkModeLegacy {
+		ctx = context.WithValue(ctx, workModeContextKey{}, tags.workMode)
+	}
+	return ctx
 }
 
 func withTurnVia(ctx context.Context, via *provider.Via) context.Context {
@@ -316,6 +321,13 @@ func (c *Controller) RunSubagentProfile(ctx context.Context, name, task string, 
 func (p plannerPlanApprover) RunWithPlannerApproval(ctx context.Context, plan string, run func(context.Context) error) error {
 	c := p.c
 	steps := PlanTodosJSON(plan)
+	if workModeFromContext(ctx) == WorkModeAgentPlanner {
+		allowed, err := c.planApproved(ctx, steps)
+		if err != nil || !allowed {
+			return err
+		}
+		return p.runApprovedPlannerPlan(ctx, steps, run)
+	}
 	allow, _, err := c.requestApproval(ctx, planApprovalRequest(steps, "Planner requested host approval before execution."))
 	if err != nil {
 		return err
@@ -323,10 +335,19 @@ func (p plannerPlanApprover) RunWithPlannerApproval(ctx context.Context, plan st
 	if !allow {
 		return nil
 	}
-	todoArgs := c.seedTodoArgs(steps)
-	execStart := c.sessionMessageCount()
 	c.approval.setPlanAutoApprove(true)
 	defer c.approval.setPlanAutoApprove(false)
+	return p.runApprovedPlannerPlan(ctx, steps, run)
+}
+
+func (p plannerPlanApprover) ApprovePlannerRevision(ctx context.Context, plan string) (bool, error) {
+	return p.c.planApproved(ctx, PlanTodosJSON(plan))
+}
+
+func (p plannerPlanApprover) runApprovedPlannerPlan(ctx context.Context, steps string, run func(context.Context) error) error {
+	c := p.c
+	todoArgs := c.seedTodoArgs(steps)
+	execStart := c.sessionMessageCount()
 	if err := run(ctx); err != nil {
 		return err
 	}

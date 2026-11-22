@@ -143,6 +143,8 @@ func ToWire(e event.Event) Event {
 		w.MemoryCitations = ToWireMemoryCitations(e.MemoryCitations)
 	}
 	switch e.Kind {
+	case event.Phase:
+		w.Code = e.Code
 	case event.Notice:
 		w.Code = e.Code
 		w.WorkspaceLease = toWireWorkspaceLease(e.WorkspaceLease)
