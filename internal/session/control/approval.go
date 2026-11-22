@@ -297,6 +297,21 @@ func (a *approvalManager) resolve(id string) pendingApproval {
 	return p
 }
 
+// stampTurn binds a registered card to the turn it was raised under.
+func (a *approvalManager) stampTurn(id string, turn turnStamp) {
+	if id == "" || turn.id == "" {
+		return
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	p, ok := a.approvals[id]
+	if !ok {
+		return
+	}
+	p.turn = turn
+	a.approvals[id] = p
+}
+
 // resolveTool removes id only when it belongs to the expected specialized
 // decision surface. A mismatched bridge call must not consume another approval
 // type that happens to share the same short numeric id.

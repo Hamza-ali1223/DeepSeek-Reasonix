@@ -403,6 +403,10 @@ func (c *Controller) markInFlightTurn(startMessageIndex int, preserveUser bool) 
 // crash marker. A crash can therefore leave either a recoverable marker or a
 // durable completed transcript, never an unmarked in-memory-only suffix.
 func (c *Controller) finishInFlightTurn(startMessages int, marker sessionstore.InFlightTurnMeta) {
+	// 1. Give this turn's receipts their carrier in memory first. The digest below
+	// is then computed over the transcript that actually contains them, so the
+	// marker's commit evidence and the saved bytes agree.
+	c.settleTurnReceipts(marker)
 	commitPrepared := marker.ID == ""
 	if marker.ID != "" && c.executor != nil {
 		digest, digestErr := c.executor.Session().ContentDigest()
@@ -410,11 +414,14 @@ func (c *Controller) finishInFlightTurn(startMessages int, marker sessionstore.I
 			slog.Warn("controller: compute completed turn digest", "err", digestErr)
 		} else if prepared, matched, prepareErr := sessionstore.PrepareSessionInFlightTurnCommit(c.SessionPath(), marker, digest); prepareErr != nil {
 			slog.Warn("controller: prepare in-flight turn commit", "err", prepareErr)
+			// A stale approval must never bind the digest to a newer turn's marker.
 		} else if matched {
 			marker = prepared
 			commitPrepared = true
 		}
 	}
+	// 2. Save the transcript. Pending receipts survive a failed save so the next
+	// attempt can still attach them to this same turn.
 	durable, err := c.snapshotActivityIfChanged(startMessages)
 	if err != nil && !durable {
 		// Keep the marker when the transcript did not become durable. Resume can
@@ -430,6 +437,13 @@ func (c *Controller) finishInFlightTurn(startMessages int, marker sessionstore.I
 		// point would otherwise leave recovery without exact commit evidence.
 		slog.Warn("controller: keeping in-flight marker without commit digest", "marker_id", marker.ID)
 		return
+	}
+	// 3. The transcript is durable, so the receipts are now in it. Drop the
+	// sidecar copy before the marker itself, keeping compare-and-clear intact.
+	if marker.ID != "" {
+		if _, clearErr := sessionstore.ClearPendingReceiptsIfDurable(c.SessionPath(), marker.ID); clearErr != nil {
+			slog.Warn("controller: clear pending receipts", "err", clearErr)
+		}
 	}
 	c.clearInFlightTurn(marker)
 }

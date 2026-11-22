@@ -14,6 +14,7 @@ import (
 
 	"reasonix/internal/base/fileutil"
 	fileencoding "reasonix/internal/base/fileutil/encoding"
+	"reasonix/internal/contract/provider"
 	"reasonix/internal/state/store"
 )
 
@@ -130,6 +131,10 @@ type InFlightTurnMeta struct {
 	// this exact transcript on disk, the snapshot committed and only marker
 	// cleanup was interrupted; no message recovery is necessary.
 	CommitDigest string `json:"commit_digest,omitempty"`
+	// PendingReceipts belong to this turn but have no carrier yet: appending them
+	// would take the index announced for the turn's user message. Cleared only
+	// once the transcript holding them is durable.
+	PendingReceipts []*provider.DecisionReceipt `json:"pending_receipts,omitempty"`
 }
 
 func (m BranchMeta) DefaultScope() string {
