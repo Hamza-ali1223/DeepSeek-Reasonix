@@ -38,9 +38,9 @@ func TestRoleFileViewsDoNotRefreshExecutor(t *testing.T) {
 				if role == "guardian" {
 					reg = GuardianToolRegistry(root)
 				} else if shared {
-					reg = PlannerToolRegistryWithFrontend(root, runtime.NewFrontend(roleLedger, roleAudit))
+					reg = PlannerToolRegistry(root, runtime.NewFrontend(roleLedger, roleAudit), nil)
 				} else {
-					reg = PlannerToolRegistry(root)
+					reg = PlannerToolRegistry(root, nil, nil)
 				}
 				if _, ok := reg.Get("write_file"); ok {
 					t.Fatal("role gained a direct writer")

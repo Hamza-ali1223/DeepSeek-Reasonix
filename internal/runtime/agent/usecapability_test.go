@@ -1240,7 +1240,7 @@ func TestPlannerToolRegistryExcludesDirectMCPKeepsProxy(t *testing.T) {
 		serverAuthorized: true,
 	})
 	parent.Add(fakeTool{name: "use_capability", readOnly: true})
-	planner := PlannerToolRegistry(parent)
+	planner := PlannerToolRegistry(parent, nil, nil)
 	names := strings.Join(planner.Names(), ",")
 	if strings.Contains(names, "mcp__") {
 		t.Fatalf("planner registry still has direct MCP: %s", names)
@@ -1267,7 +1267,7 @@ func TestPlannerSchemaStableAcrossProxyPresence(t *testing.T) {
 		fakeTool: fakeTool{name: "mcp__s__t", readOnly: true},
 		server:   "s", raw: "t", serverAuthorized: true,
 	})
-	reg1 := PlannerToolRegistry(parent)
+	reg1 := PlannerToolRegistry(parent, nil, nil)
 	schema1, ok := reg1.Get("use_capability")
 	if !ok {
 		t.Fatal("missing use_capability")
@@ -1279,7 +1279,7 @@ func TestPlannerSchemaStableAcrossProxyPresence(t *testing.T) {
 		fakeTool: fakeTool{name: "mcp__s__t2", readOnly: true},
 		server:   "s", raw: "t2", serverAuthorized: true,
 	})
-	reg2 := PlannerToolRegistry(parent)
+	reg2 := PlannerToolRegistry(parent, nil, nil)
 	schema2, ok := reg2.Get("use_capability")
 	if !ok {
 		t.Fatal("missing use_capability after MCP add")

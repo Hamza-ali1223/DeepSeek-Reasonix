@@ -2543,7 +2543,7 @@ func TestTwoModelPlannerApprovalUsesHostGate(t *testing.T) {
 		textTurn("approved execution complete"),
 	}}
 	exec := agent.New(execProv, tool.NewRegistry(), sessionstore.NewSession("exec sys"), agent.Options{}, event.Discard)
-	coord := coordinator.NewCoordinator(planner, sessionstore.NewSession("planner sys"), nil, agent.PlannerToolRegistry(tool.NewRegistry()), agent.Options{}, exec, 0, event.Discard, nil)
+	coord := coordinator.NewCoordinator(planner, sessionstore.NewSession("planner sys"), nil, agent.PlannerToolRegistry(tool.NewRegistry(), nil, nil), agent.Options{}, exec, 0, event.Discard, nil)
 
 	ids := make(chan string, 1)
 	var prompts int

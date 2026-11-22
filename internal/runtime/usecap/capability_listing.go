@@ -55,6 +55,9 @@ func (t *UseCapabilityTool) listCapabilities() (string, error) {
 	var caps []capInfo
 	if t.catalog != nil {
 		for _, e := range t.catalog().Entries {
+			if !t.plannerAllowsCapabilityEntry(e) {
+				continue
+			}
 			// Skip provider-visible core tools — they are already top-level.
 			if e.Kind == capability.KindTool && t.registry != nil && t.registry.ProviderVisible(e.ToolName) {
 				continue
@@ -72,15 +75,19 @@ func (t *UseCapabilityTool) listCapabilities() (string, error) {
 			caps = append(caps, info)
 		}
 	}
-	serversJSON, err := t.listServers()
+	servers, err := t.listServerEntries()
 	if err != nil {
 		return "", err
 	}
-	var serversPayload struct {
-		Servers []listServerInfo `json:"servers"`
-		Note    string           `json:"note"`
+	if t.plannerMCP != nil {
+		filtered := servers[:0]
+		for _, server := range servers {
+			if t.plannerAllowsServer(server.Name) {
+				filtered = append(filtered, server)
+			}
+		}
+		servers = filtered
 	}
-	_ = json.Unmarshal([]byte(serversJSON), &serversPayload)
 	payload := struct {
 		Note         string           `json:"note"`
 		Capabilities []capInfo        `json:"capabilities"`
@@ -88,10 +95,10 @@ func (t *UseCapabilityTool) listCapabilities() (string, error) {
 	}{
 		Note:         "This is the full catalog and may be truncated in conversation. Prefer action=search with capability terms, then action=call with a returned id.",
 		Capabilities: caps,
-		Servers:      serversPayload.Servers,
+		Servers:      servers,
 	}
-	if serversPayload.Note != "" {
-		payload.Note += " " + serversPayload.Note
+	if t.plannerMCP != nil {
+		payload.Note = "This is the planner's configured research allowlist. Search or inspect a returned MCP capability, then call an allowed ID."
 	}
 	b, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
@@ -100,10 +107,7 @@ func (t *UseCapabilityTool) listCapabilities() (string, error) {
 	return string(b), nil
 }
 
-// listServers returns sorted configured MCP server names, status, and
-// capability IDs without starting servers. Used by Planner discovery when no
-// specific capability route was provided.
-func (t *UseCapabilityTool) listServers() (string, error) {
+func (t *UseCapabilityTool) listServerEntries() ([]listServerInfo, error) {
 	configured := t.configuredServers()
 	list := make([]listServerInfo, 0, len(configured))
 	for _, server := range configured {
@@ -137,14 +141,7 @@ func (t *UseCapabilityTool) listServers() (string, error) {
 			Connected:    connected,
 		})
 	}
-	b, err := json.MarshalIndent(map[string]any{
-		"servers": list,
-		"note":    "list does not start MCP servers. Call action=call on mcp-server:<name> to connect after authorization, or mcp-tool:<server>/<tool> for a concrete tool.",
-	}, "", "  ")
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
+	return list, nil
 }
 
 // emptyCapabilityListResult is the fail-closed list payload: no server metadata.

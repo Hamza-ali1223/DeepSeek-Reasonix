@@ -47,7 +47,7 @@ func submitPlanCoordinator(t *testing.T, planner, exec *mockProvider, sink event
 	parentReg.Add(coordinatorTestTool{name: "read_file", readOnly: true, output: "contents"})
 	parentReg.Add(agent.NewAskTool())
 	executor := agent.New(exec, tool.NewRegistry(), sessionstore.NewSession("exec-sys"), agent.Options{}, event.Discard)
-	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(parentReg),
+	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(parentReg, nil, nil),
 		agent.Options{MaxSteps: 4}, executor, 0, sink, nil)
 	return coord, executor
 }
@@ -239,7 +239,7 @@ func TestPlannerRegistryCarriesAsk(t *testing.T) {
 	parent := tool.NewRegistry()
 	parent.Add(agent.NewAskTool())
 	parent.Add(coordinatorTestTool{name: "read_file", readOnly: true})
-	reg := agent.PlannerToolRegistry(parent)
+	reg := agent.PlannerToolRegistry(parent, nil, nil)
 	if _, ok := reg.Get("ask"); !ok {
 		t.Fatalf("planner registry lacks ask: %v", reg.Names())
 	}

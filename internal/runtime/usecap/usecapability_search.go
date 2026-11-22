@@ -18,6 +18,7 @@ type capabilitySearchHit struct {
 	Description string            `json:"description,omitempty"`
 	Status      capability.Status `json:"status"`
 	ReadOnly    bool              `json:"read_only,omitempty"`
+	Destructive bool              `json:"destructive,omitempty"`
 	InputSchema json.RawMessage   `json:"input_schema,omitempty"`
 }
 
@@ -37,6 +38,9 @@ func (t *UseCapabilityTool) searchCapabilities(query string, limit int) (string,
 	docs := make([]retrieval.FieldedDoc, 0, len(catalog.Entries))
 	entries := make(map[string]capability.Entry, len(catalog.Entries))
 	for _, entry := range catalog.Entries {
+		if !t.plannerAllowsCapabilityEntry(entry) {
+			continue
+		}
 		if entry.Status == capability.StatusDisabled || entry.Status == capability.StatusFailed {
 			continue
 		}
@@ -72,6 +76,7 @@ func (t *UseCapabilityTool) searchCapabilities(query string, limit int) (string,
 			Description: capabilityLead(entry.Description),
 			Status:      entry.Status,
 			ReadOnly:    entry.ReadOnly,
+			Destructive: entry.Destructive,
 		}
 		if entry.Kind == capability.KindTool && t.registry != nil {
 			if target, ok := t.registry.Get(entry.ToolName); ok {
