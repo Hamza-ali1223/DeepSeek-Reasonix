@@ -43,6 +43,16 @@ it("names each use, the model doing it, and the service it goes through", () => 
   expect((screen.getByRole("combobox", { name: "子代理" }) as HTMLSelectElement).value).toBe("deepseek/deepseek-pro");
 });
 
+it("shows the protocol bound to the running executor and the assigned planner", () => {
+  const planner: ModelEntry = { ref: "gateway/sol", provider: "gateway", model: "sol", kind: "responses" };
+  const executor = { ...MODELS[0], kind: "openai" };
+  render(<ModelUsage models={[executor, planner]} roles={{ ...ROLES, roles: { ...ROLES.roles, planner: planner.ref } }}
+    main={executor.ref} busy="" protocol={{}} onMain={vi.fn()} onRole={vi.fn()} />);
+
+  expect(row("默认模型").textContent).toContain("Chat Completions");
+  expect(row("计划").textContent).toContain("Responses API");
+});
+
 it("says decision has no source instead of offering the chat models", () => {
   draw();
   const decision = screen.getByRole("combobox", { name: "决策" }) as HTMLSelectElement;
