@@ -565,7 +565,7 @@ func TestCoordinatorPlannerUsesReadOnlyResearchTools(t *testing.T) {
 
 	executor := agent.New(exec, tool.NewRegistry(), sessionstore.NewSession("exec-sys"), agent.Options{}, event.Discard)
 	plannerSess := sessionstore.NewSession(PlannerPromptWithContext("Rule: keep changes narrow."))
-	coord := NewCoordinator(planner, plannerSess, nil, agent.PlannerToolRegistry(parentReg), agent.Options{MaxSteps: 4}, executor, 0, event.Discard, nil)
+	coord := NewCoordinator(planner, plannerSess, nil, agent.PlannerToolRegistry(parentReg, nil, nil), agent.Options{MaxSteps: 4}, executor, 0, event.Discard, nil)
 
 	if err := coord.Run(context.Background(), "fix the bug"); err != nil {
 		t.Fatalf("Run: %v", err)
@@ -632,7 +632,7 @@ func TestCoordinatorPlannerMaxStepsUsesExplicitRuntimeKey(t *testing.T) {
 	sink := &recordSink{}
 	executor := agent.New(exec, tool.NewRegistry(), sessionstore.NewSession("exec-sys"), agent.Options{}, sink)
 	plannerSess := sessionstore.NewSession("planner-sys")
-	coord := NewCoordinator(planner, plannerSess, nil, agent.PlannerToolRegistry(parentReg), agent.Options{
+	coord := NewCoordinator(planner, plannerSess, nil, agent.PlannerToolRegistry(parentReg, nil, nil), agent.Options{
 		MaxSteps:    2,
 		MaxStepsKey: "planner max_steps",
 	}, executor, 0, sink, nil)
@@ -686,7 +686,7 @@ func TestCoordinatorPlannerMaxStepsZeroIsUnlimited(t *testing.T) {
 	parentReg := tool.NewRegistry()
 	parentReg.Add(coordinatorTestTool{name: "read_file", readOnly: true, output: "ok"})
 	executor := agent.New(exec, tool.NewRegistry(), sessionstore.NewSession("exec-sys"), agent.Options{}, event.Discard)
-	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(parentReg), agent.Options{
+	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(parentReg, nil, nil), agent.Options{
 		MaxSteps:    0,
 		MaxStepsKey: "planner max_steps",
 	}, executor, 0, event.Discard, nil)
@@ -722,7 +722,7 @@ func TestCoordinatorPlannerDepthAppliesPerTurnResearchBudget(t *testing.T) {
 	}
 	executor := agent.New(exec, tool.NewRegistry(), sessionstore.NewSession("exec-sys"), agent.Options{}, event.Discard)
 	coord := NewCoordinatorWithPlannerPolicy(
-		planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(parentReg), agent.Options{MaxSteps: 0},
+		planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(parentReg, nil, nil), agent.Options{MaxSteps: 0},
 		executor, 0, event.Discard, policy,
 	)
 
@@ -771,7 +771,7 @@ func TestCoordinatorNudgesExecutorThatAnswersWithoutActing(t *testing.T) {
 	execReg := tool.NewRegistry()
 	execReg.Add(coordinatorTestTool{name: "write_file", readOnly: false, output: "wrote file", writesPaths: true})
 	executor := agent.New(exec, execReg, sessionstore.NewSession("exec-sys"), agent.Options{CheckTargetAccess: func(context.Context, tool.Tool, json.RawMessage) error { return nil }}, event.Discard)
-	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(tool.NewRegistry()), agent.Options{}, executor, 0, event.Discard, nil)
+	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(tool.NewRegistry(), nil, nil), agent.Options{}, executor, 0, event.Discard, nil)
 
 	if err := coord.Run(context.Background(), "install the skill"); err != nil {
 		t.Fatalf("Run: %v", err)
@@ -794,7 +794,7 @@ func TestCoordinatorAllowsGuidanceOnlyExecutorHandoff(t *testing.T) {
 	}}
 
 	executor := agent.New(exec, tool.NewRegistry(), sessionstore.NewSession("exec-sys"), agent.Options{}, event.Discard)
-	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(tool.NewRegistry()), agent.Options{}, executor, 0, event.Discard, nil)
+	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(tool.NewRegistry(), nil, nil), agent.Options{}, executor, 0, event.Discard, nil)
 
 	if err := coord.Run(context.Background(), "I just installed EqualizerAPO, now what?"); err != nil {
 		t.Fatalf("Run: %v", err)
@@ -817,7 +817,7 @@ func TestCoordinatorAllowsGuidanceOnlyPlanWithExecutorToolContext(t *testing.T) 
 	execReg.Add(coordinatorTestTool{name: "read_file", readOnly: true, output: "file"})
 	execReg.Add(coordinatorTestTool{name: "write_file", readOnly: false, output: "wrote file", writesPaths: true})
 	executor := agent.New(exec, execReg, sessionstore.NewSession("exec-sys"), agent.Options{}, event.Discard)
-	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(tool.NewRegistry()), agent.Options{}, executor, 0, event.Discard, nil)
+	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(tool.NewRegistry(), nil, nil), agent.Options{}, executor, 0, event.Discard, nil)
 
 	if err := coord.Run(context.Background(), "Please advise on the manual audio check."); err != nil {
 		t.Fatalf("Run: %v", err)
@@ -847,7 +847,7 @@ func TestCoordinatorNudgesWorkTaskEvenIfPlannerMentionsUserGuidance(t *testing.T
 	execReg := tool.NewRegistry()
 	execReg.Add(coordinatorTestTool{name: "write_file", readOnly: false, output: "wrote file", writesPaths: true})
 	executor := agent.New(exec, execReg, sessionstore.NewSession("exec-sys"), agent.Options{CheckTargetAccess: func(context.Context, tool.Tool, json.RawMessage) error { return nil }}, event.Discard)
-	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(tool.NewRegistry()), agent.Options{}, executor, 0, event.Discard, nil)
+	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(tool.NewRegistry(), nil, nil), agent.Options{}, executor, 0, event.Discard, nil)
 
 	if err := coord.Run(context.Background(), "fix the bug"); err != nil {
 		t.Fatalf("Run: %v", err)
@@ -880,7 +880,7 @@ func TestCoordinatorNudgesMixedGuidanceAndWorkTask(t *testing.T) {
 	execReg := tool.NewRegistry()
 	execReg.Add(coordinatorTestTool{name: "write_file", readOnly: false, output: "wrote file", writesPaths: true})
 	executor := agent.New(exec, execReg, sessionstore.NewSession("exec-sys"), agent.Options{CheckTargetAccess: func(context.Context, tool.Tool, json.RawMessage) error { return nil }}, event.Discard)
-	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(tool.NewRegistry()), agent.Options{}, executor, 0, event.Discard, nil)
+	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(tool.NewRegistry(), nil, nil), agent.Options{}, executor, 0, event.Discard, nil)
 
 	if err := coord.Run(context.Background(), "summarize the current behavior and update the README"); err != nil {
 		t.Fatalf("Run: %v", err)
@@ -1008,7 +1008,7 @@ func TestCoordinatorHandoffAffirmsExecutorToolSchemasWhenPlannerClaimsNoMCP(t *t
 	execReg := tool.NewRegistry()
 	execReg.Add(coordinatorTestTool{name: "mcp__github__search", readOnly: true, output: "discussion results"})
 	executor := agent.New(exec, execReg, sessionstore.NewSession("exec-sys"), agent.Options{}, event.Discard)
-	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(tool.NewRegistry()), agent.Options{}, executor, 0, event.Discard, nil)
+	coord := NewCoordinator(planner, sessionstore.NewSession("planner-sys"), nil, agent.PlannerToolRegistry(tool.NewRegistry(), nil, nil), agent.Options{}, executor, 0, event.Discard, nil)
 
 	if err := coord.Run(context.Background(), "search GitHub discussions"); err != nil {
 		t.Fatalf("Run: %v", err)
@@ -1100,7 +1100,7 @@ func BenchmarkPlannerToolRegistry(b *testing.B) {
 
 	b.ReportAllocs()
 	for range b.N {
-		reg := agent.PlannerToolRegistry(parentReg)
+		reg := agent.PlannerToolRegistry(parentReg, nil, nil)
 		if reg.Len() == 0 {
 			b.Fatal("planner registry should retain read-only research tools")
 		}
@@ -1115,7 +1115,7 @@ func TestCoordinatorSetPlanModePropagates(t *testing.T) {
 	plannerSess := sessionstore.NewSession("planner-sys")
 	plannerReg := tool.NewRegistry()
 	plannerReg.Add(coordinatorTestTool{name: "read_file", readOnly: true})
-	plannerTools := agent.PlannerToolRegistry(plannerReg)
+	plannerTools := agent.PlannerToolRegistry(plannerReg, nil, nil)
 
 	exec := agent.New(nil, tool.NewRegistry(), sessionstore.NewSession("exec-sys"), agent.Options{}, event.Discard)
 

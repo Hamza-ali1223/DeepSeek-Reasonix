@@ -113,7 +113,7 @@ func TestSubmitPlanIsReadOnlyAndInThePlannerRegistry(t *testing.T) {
 	if !(&SubmitPlanTool{}).ReadOnly() {
 		t.Fatal("submitting a plan touches nothing and must be read-only")
 	}
-	reg := PlannerToolRegistry(nil)
+	reg := PlannerToolRegistry(nil, nil, nil)
 	if _, ok := reg.Get("submit_plan"); !ok {
 		t.Fatalf("planner registry lacks submit_plan: %v", reg.Names())
 	}

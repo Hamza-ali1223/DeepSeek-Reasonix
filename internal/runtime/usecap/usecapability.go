@@ -406,7 +406,8 @@ type UseCapabilityTool struct {
 	catalog   func() capability.Catalog
 	// state is session-shared connection observation when built via
 	// MCPCapabilityRuntime; nil falls back to a private map for tests.
-	state *mcpProxySharedState
+	state      *mcpProxySharedState
+	plannerMCP *plannerMCPAllowlist
 }
 
 // BindLocalTools installs execution-local file state before frontend publication.
@@ -440,15 +441,16 @@ func (t *UseCapabilityTool) CloneForAgent(ledger *capability.Ledger, audit *capa
 		state = &mcpProxySharedState{connected: map[string]bool{}}
 	}
 	return &UseCapabilityTool{
-		host:     t.host,
-		lifeCtx:  t.lifeCtx,
-		specs:    t.specs,
-		runtime:  t.runtime,
-		registry: t.registry,
-		ledger:   ledger,
-		audit:    audit,
-		catalog:  t.catalog,
-		state:    state,
+		host:       t.host,
+		lifeCtx:    t.lifeCtx,
+		specs:      t.specs,
+		runtime:    t.runtime,
+		registry:   t.registry,
+		ledger:     ledger,
+		audit:      audit,
+		catalog:    t.catalog,
+		state:      state,
+		plannerMCP: clonePlannerMCPAllowlist(t.plannerMCP),
 	}
 }
 
@@ -600,6 +602,15 @@ func (t *UseCapabilityTool) ResolveCall(ctx context.Context, args json.RawMessag
 	}
 }
 
+// callArguments is what a call forwards to its target: an absent argument
+// object means no arguments, not null, and every resolution path agrees.
+func callArguments(args json.RawMessage) json.RawMessage {
+	if len(args) == 0 {
+		return json.RawMessage(`{}`)
+	}
+	return args
+}
+
 // TargetArgs is what a call action forwards to its target, read without
 // resolving it; every other action forwards nothing.
 func (*UseCapabilityTool) TargetArgs(args json.RawMessage) json.RawMessage {
@@ -659,143 +670,12 @@ func (t *UseCapabilityTool) Execute(ctx context.Context, args json.RawMessage) (
 	return out, nil
 }
 
-func (t *UseCapabilityTool) inspect(ctx context.Context, id string) (string, error) {
-	cat := t.currentCatalog()
-	if e, ok := cat.Lookup(id); ok {
-		info := map[string]any{
-			"id":          e.ID,
-			"kind":        e.Kind,
-			"name":        e.Name,
-			"description": e.Description,
-			"status":      e.Status,
-			"read_only":   e.ReadOnly,
-			"auto_use":    e.AutoUse,
-			"requires":    e.Requires,
-			"profiles":    e.Profiles,
-			"tool_name":   e.ToolName,
-			"auto_start":  e.AutoStart,
-		}
-		if len(e.Aliases) > 0 {
-			info["aliases"] = e.Aliases
-		}
-		// A registry tool answers with its own schema. Without it the model is
-		// left guessing argument names for a tool the provider schema hides.
-		if e.Kind == capability.KindTool && t.registry != nil {
-			if tl, ok := t.registry.Get(e.ToolName); ok {
-				info["input_schema"] = json.RawMessage(tl.Schema())
-			}
-		}
-		b, _ := json.MarshalIndent(info, "", "  ")
-		// For MCP entries, list tools without side effects: live tools when the
-		// server is already connected, cached schema otherwise. Inspect runs
-		// during call resolution — before permission and hook gates — so it must
-		// never start a subprocess or open a network connection.
-		if e.Kind == capability.KindMCPServer || e.Kind == capability.KindMCPTool {
-			server := e.Source
-			if server == "" {
-				server = e.ConnectName
-			}
-			toolFilter := ""
-			if e.Kind == capability.KindMCPTool {
-				parsedServer, raw, err := parseMCPCapabilityID(e.ID)
-				if err != nil {
-					return string(b), nil
-				}
-				if server == "" {
-					server = parsedServer
-				} else if parsedServer != server {
-					return string(b), nil
-				}
-				toolFilter = raw
-			}
-			if server != "" {
-				if !t.serverEnabled(server) {
-					return string(b) + "\n\nServer is disabled in this session.", nil
-				}
-				if t.host != nil && t.host.HasClient(server) {
-					// serverTools refreshes the snapshot too: inspecting a
-					// server another tab connected restores tool routing here.
-					tools, err := t.serverTools(ctx, server)
-					if err != nil {
-						return string(b) + "\n\nTool listing failed: " + err.Error(), nil
-					}
-					return string(b) + "\n\nTools:\n" + inspectToolListJSON(server, filterInspectTools(tools, toolFilter)), nil
-				}
-				if spec, ok := t.specFor(server); ok {
-					if cs, ok := plugin.LoadCachedSchemaForSpec(spec); ok && len(cs.Tools) > 0 {
-						var list []inspectToolInfo
-						for _, ct := range cs.Tools {
-							if toolFilter != "" && ct.Name != toolFilter {
-								continue
-							}
-							list = append(list, inspectToolInfo{
-								ID:          "mcp-tool:" + server + "/" + ct.Name,
-								Name:        plugin.ModelToolName(server, ct.Name),
-								Description: ct.Description,
-								ReadOnly:    ct.ReadOnly,
-								Schema:      ct.Schema,
-							})
-						}
-						extra, _ := json.MarshalIndent(list, "", "  ")
-						return string(b) + "\n\nTools (from cached schema; server not started):\n" + string(extra), nil
-					}
-					return string(b) + "\n\nServer not connected and no cached tool schema; call use_capability(action=\"call\", capability_id=\"mcp-server:" + server + "\") to connect (after approval) and list its tools.", nil
-				}
-			}
-		}
-		return string(b), nil
-	}
-	return "", fmt.Errorf("unknown capability_id %q", id)
-}
-
-// filterInspectTools narrows concrete mcp-tool inspection to that exact tool.
-// Server inspection intentionally keeps the full directory. This prevents a
-// restricted sub-agent allowed one tool from discovering sibling tool schemas
-// through action=inspect on its allowed capability ID.
-func filterInspectTools(tools []tool.Tool, raw string) []tool.Tool {
-	if raw == "" {
-		return tools
-	}
-	filtered := make([]tool.Tool, 0, 1)
-	for _, tl := range tools {
-		if m, ok := tl.(tool.MCPMetadata); ok && m.MCPRawToolName() == raw {
-			filtered = append(filtered, tl)
-			break
-		}
-	}
-	return filtered
-}
-
-type inspectToolInfo struct {
-	ID          string          `json:"id"`
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	ReadOnly    bool            `json:"read_only"`
-	Schema      json.RawMessage `json:"input_schema,omitempty"`
-}
-
-// inspectToolListJSON renders a server's live tools as the capability-id
-// directory shared by inspect and the first-discovery connect result.
-func inspectToolListJSON(server string, tools []tool.Tool) string {
-	var list []inspectToolInfo
-	for _, tl := range tools {
-		raw := ""
-		if m, ok := tl.(tool.MCPMetadata); ok {
-			raw = m.MCPRawToolName()
-		}
-		list = append(list, inspectToolInfo{
-			ID:          "mcp-tool:" + server + "/" + raw,
-			Name:        tl.Name(),
-			Description: tl.Description(),
-			ReadOnly:    tl.ReadOnly(),
-			Schema:      tl.Schema(),
-		})
-	}
-	extra, _ := json.MarshalIndent(list, "", "  ")
-	return string(extra)
-}
-
 func (t *UseCapabilityTool) resolveCall(ctx context.Context, id string, args json.RawMessage, base tool.ResolvedCall) (tool.ResolvedCall, error) {
+	if err := t.plannerDispatchError(id); err != nil {
+		return tool.ResolvedCall{}, err
+	}
+	args = callArguments(args)
+	base.Args = args
 	// Registry-backed tools and skills share the unified proxy. Real writers
 	// still pass permission/plan/sandbox/lease checks via ResolvedCall.Target.
 	if name, ok := strings.CutPrefix(id, "tool:"); ok {
@@ -839,17 +719,15 @@ func (t *UseCapabilityTool) resolveCall(ctx context.Context, id string, args jso
 	modelName := plugin.ModelToolName(server, raw)
 	if t.registry != nil {
 		if tl, ok := routableRegistryTool(t.registry, modelName); ok {
+			if !t.plannerAllowsRuntimeMCPTool(tl, server, raw) {
+				return t.resolveUnavailable(base, id, modelName, fmt.Sprintf("MCP tool %q is outside the planner's configured research allowlist", raw)), nil
+			}
 			if t.runtime != nil && !mcpToolMatchesRuntime(tl, runtimeSpec) {
 				return t.resolveUnavailable(base, id, modelName, fmt.Sprintf("connected MCP server %q identity does not match the current runtime configuration", server)), nil
 			}
 			base.TargetName = modelName
 			base.Target = t.bindRuntimeMCP(runtimeSpec, tl)
 			base.ReadOnly = tl.ReadOnly()
-			if len(args) == 0 {
-				base.Args = json.RawMessage(`{}`)
-			} else {
-				base.Args = args
-			}
 			return base, nil
 		}
 	}
@@ -871,14 +749,12 @@ func (t *UseCapabilityTool) resolveCall(ctx context.Context, id string, args jso
 		if target == nil {
 			return t.resolveUnavailable(base, id, modelName, fmt.Sprintf("MCP tool %q not found on server %q", raw, server)), nil
 		}
+		if !t.plannerAllowsRuntimeMCPTool(target, server, raw) {
+			return t.resolveUnavailable(base, id, modelName, fmt.Sprintf("MCP tool %q is outside the planner's configured research allowlist", raw)), nil
+		}
 		base.Target = t.bindRuntimeMCP(runtimeSpec, target)
 		base.TargetName = target.Name()
 		base.ReadOnly = target.ReadOnly()
-		if len(args) == 0 {
-			base.Args = json.RawMessage(`{}`)
-		} else {
-			base.Args = args
-		}
 		return base, nil
 	}
 	// Unconnected server: resolution must stay pure — no subprocess, no network.
@@ -911,11 +787,6 @@ func (t *UseCapabilityTool) resolveCall(ctx context.Context, id string, args jso
 	// Cached server hints control ordinary approval. Strict read-only execution
 	// additionally requires server authorization and live read-only metadata.
 	base.ReadOnly = lazy.ReadOnly()
-	if len(args) == 0 {
-		base.Args = json.RawMessage(`{}`)
-	} else {
-		base.Args = args
-	}
 	return base, nil
 }
 
@@ -1402,6 +1273,7 @@ func (t *UseCapabilityTool) listServerTools(ctx context.Context, server string) 
 	if err != nil {
 		return "", err
 	}
+	tools = t.filterPlannerServerTools(server, tools)
 	return fmt.Sprintf("connected MCP server %q; %d tools:\n%s", server, len(tools), inspectToolListJSON(server, tools)), nil
 }
 
@@ -1410,6 +1282,7 @@ func (t *UseCapabilityTool) listServerToolsForSpec(ctx context.Context, server s
 	if err != nil {
 		return "", err
 	}
+	tools = t.filterPlannerServerTools(server, tools)
 	return fmt.Sprintf("connected MCP server %q; %d tools:\n%s", server, len(tools), inspectToolListJSON(server, tools)), nil
 }
 

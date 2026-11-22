@@ -93,7 +93,7 @@ func TestPlannerToolRegistryClonesUseCapability(t *testing.T) {
 	parent.Add(proxy)
 	parent.Add(fakeRegistryTool{name: "read_file", readOnly: true})
 
-	planner := agent.PlannerToolRegistry(parent)
+	planner := agent.PlannerToolRegistry(parent, nil, nil)
 	got, ok := planner.Get("use_capability")
 	if !ok {
 		t.Fatal("planner missing use_capability")

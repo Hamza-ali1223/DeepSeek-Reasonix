@@ -66,9 +66,9 @@ func (w roleWiring) planner(opts Options, executor *agent.Agent, executorModel, 
 	plannerAudit := &capability.Audit{}
 	var plannerTools *tool.Registry
 	if capRuntime != nil {
-		plannerTools = agent.PlannerToolRegistryWithFrontend(w.reg, capRuntime.NewFrontend(plannerLedger, plannerAudit))
+		plannerTools = agent.PlannerToolRegistry(w.reg, capRuntime.NewFrontend(plannerLedger, plannerAudit), w.cfg.Agent.PlannerTools)
 	} else {
-		plannerTools = agent.PlannerToolRegistry(w.reg)
+		plannerTools = agent.PlannerToolRegistry(w.reg, nil, w.cfg.Agent.PlannerTools)
 	}
 	plannerOpts := agent.Options{
 		MaxSteps:          0,
