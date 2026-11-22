@@ -134,6 +134,21 @@ describe("the session overview behind the cache meter", () => {
     expect(price?.getAttribute("title")).toBe("价格未知：no_rate");
   });
 
+  it("shows planner and executor requests, token counts, and cache provenance without hover", () => {
+    const planner = {
+      source: "planner", requests: 1, promptTokens: 1200, completionTokens: 40,
+      cacheHit: 0, cacheMiss: 1200, cacheUnknown: 1200, cost: quote(),
+    };
+    rail({ usage: { ...usage, requests: 4, sources: [...usage.sources, planner] } });
+    const lines = [...card().querySelectorAll(".studio-overview-row")];
+    const executorLine = lines.find((line) => line.textContent?.includes("主代理"));
+    const plannerLine = lines.find((line) => line.textContent?.includes("规划"));
+    expect(executorLine?.textContent).toContain("输入 3k · 输出 150");
+    expect(executorLine?.textContent).toContain("2.3k");
+    expect(plannerLine?.textContent).toContain("输入 1.2k · 输出 40");
+    expect(plannerLine?.textContent).toContain("缓存命中 —");
+  });
+
   it("never shows a figure as exact for a cost that was only partly priced", () => {
     rail({ quote: quote({ coverage: "partial" }) });
     const row = within(card()).getByText("费用").closest("div")!;

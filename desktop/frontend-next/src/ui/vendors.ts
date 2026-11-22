@@ -13,6 +13,16 @@ export const KIND_LABEL: Record<string, string> = {
   extension: "ext.extension",
 };
 
+const PROTOCOL_DETAIL: Record<string, string> = {
+  openai: "Chat Completions",
+  responses: "Responses API",
+  anthropic: "Messages API",
+};
+
+export function protocolDetail(kind: string): string {
+  return PROTOCOL_DETAIL[kind] ?? kind;
+}
+
 // The account a route belongs to. Host alone is not enough: a relay reached
 // with two different keys is two accounts — personal beside work, or two
 // tenants of the same gateway — and merging them would show one balance and one

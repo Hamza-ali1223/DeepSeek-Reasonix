@@ -58,6 +58,7 @@ export function SessionOverviewCard({ usage, quote, hideAmounts, onContext, clas
   const total = cost(costSay(quote), hideAmounts);
   const unknown = usage?.cacheUnknown ?? 0;
   const sources = usage?.sources ?? [];
+  const hasPlanner = sources.some((src) => src.source === "planner");
   const asked = (id: string) => sources.find((src) => src.source === id)?.requests ?? 0;
   const priced = sources.map((src) => { const say = costSay(src.cost); return say.kind === "exact" ? say.amount : 0; });
   const pricedTotal = priced.reduce((n, v) => n + v, 0);
@@ -90,12 +91,19 @@ export function SessionOverviewCard({ usage, quote, hideAmounts, onContext, clas
               <div><b>{t("common.by_source")}</b></div>
               {sources.map((src, i) => {
                 const c = cost(costSay(src.cost), hideAmounts);
-                const detail = `${t("session.requests_tokens_cache_cost")}: ${src.requests} · ${tokens(sourceTokens(src))} · ${percent(cacheRate(src.cacheHit, src.cacheMiss, src.cacheUnknown ?? 0))} · ${c.text}`;
+                const rate = cacheRate(src.cacheHit, src.cacheMiss, src.cacheUnknown);
+                const detail = `${t("session.requests_tokens_cache_cost")}: ${src.requests} · ${tokens(sourceTokens(src))} · ${percent(rate)} · ${c.text}`;
                 return (
                   <div className="studio-overview-row" key={src.source} title={detail}>
                     <span>{sourceName(src.source)}</span>
                     <i aria-hidden="true"><u style={{ width: `${pricedTotal > 0 ? Math.max(priced[i] > 0 ? 2 : 0, (priced[i] / pricedTotal) * 100) : 0}%` }} /></i>
                     <b title={c.note || undefined}>{c.text}</b>
+                    {hasPlanner && (src.source === "planner" || src.source === "executor") && (
+                      <small className="studio-overview-role-usage">
+                        {t("common.requests")} {src.requests} · {t("session.in_a_out_b", { a: tokens(src.promptTokens), b: tokens(src.completionTokens) })}
+                        {" · "}{t("common.cache_hit")} {rate === null ? "—" : `${tokens(src.cacheHit)} (${percent(rate)})`}
+                      </small>
+                    )}
                   </div>
                 );
               })}

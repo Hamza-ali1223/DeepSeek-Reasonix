@@ -22,6 +22,7 @@
 .studio-overview-row > b { min-width: 52px; color: var(--muted); font: var(--w-reg) var(--fs-meta)/1 var(--ui); text-align: right; }
 .studio-overview-row > i { display: block; height: 6px; overflow: hidden; border-radius: var(--r-xs); background: var(--overlay); }
 .studio-overview-row > i > u { display: block; height: 100%; background: var(--net); text-decoration: none; }
+.studio-overview-role-usage { grid-column: 1 / -1; color: var(--muted); }
 @media (hover: hover) {
   .studio-overview-anchor:hover .studio-overview-popover { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition-delay: 0s; }
   .studio-meterrail:has(.studio-context-anchor[data-open]) .studio-overview-anchor:not([data-open]):hover .studio-overview-popover { opacity: 0; visibility: hidden; pointer-events: none; }

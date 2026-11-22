@@ -5,7 +5,7 @@ import { reason } from "../i18n/kernel";
 import logoWordmark from "../assets/logo-wordmark.svg";
 import { HttpError } from "../port/port";
 import type { AgentPort, Protocol, ProviderProbe, ProviderSetup } from "../port/port";
-import { KIND_LABEL, nameFrom } from "./vendors";
+import { KIND_LABEL, nameFrom, protocolDetail } from "./vendors";
 import { hasVendorMark, VendorMark } from "./vendormarks";
 import { OnboardingDemo } from "./OnboardingDemo";
 import { RMark } from "./RMark";
@@ -64,12 +64,6 @@ type Step = "welcome" | "connect" | "model" | "project";
 // account behind it is out of credit. Both are settled on the vendor's site,
 // so the refusal carries a way to get there instead of only a sentence.
 const FIX_AT_VENDOR = new Set(["provider.probe.unauthorized", "provider.probe.payment_required"]);
-
-const KIND_DETAIL: Record<string, string> = {
-  openai: "Chat Completions",
-  responses: "Responses API",
-  anthropic: "Messages API",
-};
 
 // Failed is a refusal kept whole: the sentence to read, and the code that says
 // whether reading it is enough.
@@ -336,7 +330,7 @@ export function Onboarding({ port, setup, onDone, onSkip, project }: Props) {
                       <button key={value} type="button" role="radio" data-action="onboarding.protocol" data-value={value} aria-checked={kind === value} disabled={busy}
                         onClick={() => selectProtocol(value)}>
                         <i aria-hidden="true" />
-                        <span><b>{t(KIND_LABEL[value] || value)}</b><small>{KIND_DETAIL[value] || value}</small></span>
+                        <span><b>{t(KIND_LABEL[value] || value)}</b><small>{protocolDetail(value)}</small></span>
                       </button>
                     ))}
                   </div>

@@ -3,6 +3,7 @@ import { t } from "../i18n";
 import type { ModelEntry, RoleAssignments, RoleOverride } from "../port/port";
 import { activeKind, contextLabel, groupVendors, type Vendor } from "./Models";
 import { orderAccounts, useProviderOrder } from "../state/providerorder";
+import { protocolDetail } from "./vendors";
 
 type RoleKey = keyof RoleAssignments["roles"];
 type Answers = "chat" | "decision" | "search" | "vision";
@@ -86,7 +87,9 @@ export function ModelUsage({ models, roles, main, busy, protocol, effort = "auto
           </span>
           <span className="usage-effort" role="cell"><span className="usage-effort-label">{t("usage.effort")}</span><Efforts model={current} value={effort} label={t("usage.default_model_reasoning_effort")}
             action="reasoning.effort" disabled={busy !== "" || !onEffort} onPick={(level) => onEffort?.(level)} /></span>
-          <span className="usage-conn" role="cell">{serviceOf(shown)}<small>{traits(shownModel)}</small></span>
+          <span className="usage-conn" role="cell">{serviceOf(shown)}<small>{traits(shownModel)}</small>
+            {current?.kind && <small>{current.ref !== shown && `${current.model} · `}{protocolDetail(current.kind)}</small>}
+          </span>
         </div>
         {roles && ROLES.map(([key, name, tag, answers]) => {
           const set = roles.roles[key];
@@ -120,6 +123,7 @@ export function ModelUsage({ models, roles, main, busy, protocol, effort = "auto
                 onPick={(level) => onRole(key, set || main || "", level)} /></span>
               <span className="usage-conn" role="cell" data-follow={!set && answers === "chat" && key !== "title" ? "" : undefined}>
                 {set ? serviceOf(set) : key === "title" ? t("usage.use_message_preview") : answers === "chat" ? t("usage.follows_the_default") : none ? t("usage.add_a_decision_source_under") : ""}
+                {key === "planner" && set && roleModel?.kind && <small>{protocolDetail(roleModel.kind)}</small>}
               </span>
             </div>
           );
