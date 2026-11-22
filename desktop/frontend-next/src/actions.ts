@@ -3,6 +3,7 @@ import { SCHEDULE_ACTIONS } from "./actions_schedule";
 import { DOCUMENT_ACTIONS } from "./actions_document";
 import { FENCE_ACTIONS } from "./actions_fence";
 import { FEEDBACK_ACTIONS } from "./actions_feedback";
+import { PLANNER_ACTIONS } from "./actions_planner";
 import { WORKBENCH_ACTIONS } from "./actions_workbench";
 
 // The census oracle is independent of production literals so disagreements fail.
@@ -310,7 +311,7 @@ export const ACTIONS: UIAction[] = [
   { id: "community.more", kind: "view", target: "none", proof: "interaction" },
   { id: "sponsor.paypal", kind: "shell-native", target: "none", proof: "interaction" },
   { id: "sponsor.qr", kind: "view", target: "none", proof: "interaction" },
-  ...FEEDBACK_ACTIONS,
+  ...FEEDBACK_ACTIONS, ...PLANNER_ACTIONS,
   ...WORKBENCH_ACTIONS,
   { id: "side.collapse", kind: "view", target: "none", proof: "interaction" },
   { id: "side.toggle", kind: "view", target: "none", proof: "interaction" },
