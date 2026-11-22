@@ -32,6 +32,8 @@ func (s *Server) registerBoundaryRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /write-lease", s.saveWriteLeaseSettings)
 	mux.HandleFunc("GET /plan-approval", s.planApprovalSettings)
 	mux.HandleFunc("POST /plan-approval", s.savePlanApprovalSettings)
+	mux.HandleFunc("GET /planner-settings", s.plannerSettings)
+	mux.HandleFunc("POST /planner-settings", s.savePlannerSettings)
 	mux.HandleFunc("GET /default-mode", s.defaultModeSettings)
 	mux.HandleFunc("POST /default-mode", s.saveDefaultModeSettings)
 	mux.HandleFunc("GET /tools", s.toolSettings)
