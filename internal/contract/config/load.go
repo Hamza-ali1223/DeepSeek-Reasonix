@@ -1277,11 +1277,11 @@ func legacyMimoProviderNameForRef(ref string) string {
 }
 
 func legacyMimoAPIModels() []string {
-	return append(slices.Clone(mimoPAYGModels), "mimo-v2-omni")
+	return append(slices.Clone(mimoBackfillModels), "mimo-v2-omni")
 }
 
 func legacyMimoTokenPlanModels() []string {
-	return slices.Clone(mimoModels)
+	return slices.Clone(mimoTokenPlanBackfillModels)
 }
 
 func legacyMimoCustomProvider(name string) ProviderEntry {

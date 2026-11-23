@@ -70,16 +70,19 @@ func TestIsLikelyChatModel_DoesNotFilterVoiceAlone(t *testing.T) {
 }
 
 func TestIsLikelyVisionModel(t *testing.T) {
+	// Xiaomi's Image Understanding page names the V2.6 series as supported, and
+	// retired the V2.5 names the map used to carry.
 	for _, model := range []string{
-		"mimo-v2.5", "mimo-v2-omni", "gpt-4o", "gpt-4o-mini",
-		"qwen2.5-vl-72b-instruct", "custom-vision-chat",
+		"mimo-v2.6-pro", "mimo-v2.6-flash", "mimo-v2.6-pro-ultraspeed",
+		"gpt-4o", "gpt-4o-mini", "qwen2.5-vl-72b-instruct", "custom-vision-chat",
 	} {
 		if !IsLikelyVisionModel(model) {
 			t.Errorf("IsLikelyVisionModel(%q) = false, want true", model)
 		}
 	}
 	for _, model := range []string{
-		"", "mimo-v2.5-pro", "deepseek-v4-pro", "mimo-v2.5-asr", "text-embedding-3-small",
+		"", "mimo-v2.5", "mimo-v2.5-pro", "deepseek-v4-pro",
+		"mimo-v2.5-asr", "text-embedding-3-small",
 		"gpt-4o-audio-preview", "gpt-4o-mini-audio-preview",
 	} {
 		if IsLikelyVisionModel(model) {
@@ -91,16 +94,15 @@ func TestIsLikelyVisionModel(t *testing.T) {
 func TestInferVisionModels(t *testing.T) {
 	got := InferVisionModels([]string{
 		"mimo-v2.5-pro",
-		"mimo-v2.5",
-		"mimo-v2.5",
-		"mimo-v2-omni",
+		"mimo-v2.6-pro",
+		"mimo-v2.6-pro",
 		"qwen-vl-plus",
 		"mimo-v2.5-asr",
 		"audio-omni-tts",
 		"gpt-4o-audio-preview",
 		"gpt-4o-mini-audio-preview",
 	})
-	want := []string{"mimo-v2.5", "mimo-v2-omni", "qwen-vl-plus"}
+	want := []string{"mimo-v2.6-pro", "qwen-vl-plus"}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("InferVisionModels() = %v, want %v", got, want)
 	}

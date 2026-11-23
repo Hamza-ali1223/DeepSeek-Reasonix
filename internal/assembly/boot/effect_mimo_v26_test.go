@@ -138,15 +138,20 @@ func TestEffectMimoV26ReachesRequestPricingAndPicker(t *testing.T) {
 	if price == nil || price.Original.Amount != "9" || price.CatalogSource == "" {
 		t.Fatalf("turn quoted %+v, want 3+6 for a million tokens each on the V2.6 pro card", price)
 	}
-	for _, m := range []string{"mimo-v2.6-pro", "mimo-v2.6-flash", "mimo-v2.6-pro-ultraspeed", "mimo-v2.5-pro", "mimo-v2.5"} {
+	for _, m := range []string{"mimo-v2.6-pro", "mimo-v2.6-flash", "mimo-v2.6-pro-ultraspeed"} {
 		if !entry.HasModel(m) {
 			t.Fatalf("picker catalog %v lacks %s", entry.Models, m)
+		}
+	}
+	for _, m := range []string{"mimo-v2.5-pro", "mimo-v2.5", "mimo-v2-pro", "mimo-v2-omni", "mimo-v2-flash"} {
+		if entry.HasModel(m) {
+			t.Fatalf("picker catalog %v offers retired model %s", entry.Models, m)
 		}
 	}
 	if entry.ContextWindow != 1_000_000 {
 		t.Fatalf("window = %d, want 1000000", entry.ContextWindow)
 	}
-	if entry.HasVisionModel("mimo-v2.6-pro") || entry.HasVisionModel("mimo-v2.6-flash") || !entry.HasVisionModel("mimo-v2.5") {
+	if !entry.HasVisionModel("mimo-v2.6-pro") || !entry.HasVisionModel("mimo-v2.6-flash") || entry.HasVisionModel("mimo-v2.5") {
 		t.Fatalf("vision_models = %v", entry.VisionModels)
 	}
 }
@@ -162,7 +167,7 @@ func TestEffectShippedMimoV25ShapeMovesToV26(t *testing.T) {
 	if entry.ContextWindow != 1_000_000 {
 		t.Fatalf("upgraded window = %d, want 1000000", entry.ContextWindow)
 	}
-	if !entry.HasModel("mimo-v2.6-flash") || !entry.HasModel("mimo-v2.5-pro") || entry.HasVisionModel("mimo-v2.6-pro") || entry.HasVisionModel("mimo-v2.5-pro") {
+	if !entry.HasModel("mimo-v2.6-flash") || entry.HasModel("mimo-v2.5-pro") || !entry.HasVisionModel("mimo-v2.6-pro") || entry.HasVisionModel("mimo-v2.5") {
 		t.Fatalf("upgraded entry = models %v vision %v", entry.Models, entry.VisionModels)
 	}
 }

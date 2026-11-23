@@ -8,8 +8,9 @@ import (
 )
 
 var mimoVisionModels = map[string]bool{
-	"mimo-v2.5":    true,
-	"mimo-v2-omni": true,
+	"mimo-v2.6-pro":            true,
+	"mimo-v2.6-flash":          true,
+	"mimo-v2.6-pro-ultraspeed": true,
 }
 
 // InferVisionModels returns model IDs that look like chat models with image

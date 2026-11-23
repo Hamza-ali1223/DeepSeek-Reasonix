@@ -221,9 +221,9 @@ func RateModelFor(provider, model string) string {
 	case "mimo":
 		switch model {
 		case "mimo-v2-pro":
-			return "mimo-v2.5-pro"
+			return "mimo-v2.6-pro"
 		case "mimo-v2-omni":
-			return "mimo-v2.5"
+			return "mimo-v2.6-flash"
 		}
 	}
 	return model
