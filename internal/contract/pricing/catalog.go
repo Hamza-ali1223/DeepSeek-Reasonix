@@ -65,8 +65,13 @@ var chineseStatutoryHolidays = []string{
 	"2026-10-05", "2026-10-06", "2026-10-07",
 }
 
-// checkedOn is when the tables below were last read off the vendors' pages.
-const checkedOn = "2026-08-22"
+// longcatCheckedOn is when the LongCat rows were last read off the vendor's
+// page, in both currencies it publishes.
+const longcatCheckedOn = "2026-11-23"
+
+// mimoV25CheckedOn is when the retired V2.5 family's source was last read. Its
+// numbers are history: Xiaomi stopped publishing them on 2026-10-21.
+const mimoV25CheckedOn = "2026-08-22"
 
 // deepseekCheckedOn is when the DeepSeek rows were last read off that vendor's
 // page. Separate from checkedOn, because confirming one vendor's prices says

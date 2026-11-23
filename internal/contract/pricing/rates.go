@@ -44,6 +44,9 @@ type officialRateRow struct {
 	DocURL      string
 	Notes       string
 	CheckedOn   string
+	// RetiredOn is the day the vendor stopped answering for this model, and the
+	// first day it is no longer offered. The row keeps pricing history.
+	RetiredOn string
 	// Rates is oldest first; the last entry is what this costs today.
 	Rates []rateGeneration
 }
@@ -99,12 +102,12 @@ var officialRates = []officialRateRow{
 	// CheckedOn earns its place here.
 	{
 		Provider: "longcat", Model: "LongCat-2.0", Currency: "CNY",
-		BillingMode: BillingModePAYG, DocURL: DocLongCatPricingCNY, Notes: "launch_discount_no_end_date", CheckedOn: checkedOn,
+		BillingMode: BillingModePAYG, DocURL: DocLongCatPricingCNY, Notes: "launch_discount_no_end_date", CheckedOn: longcatCheckedOn,
 		Rates: []rateGeneration{{Base: RateCard{CacheHit: 0.04, Input: 2, Output: 8, Currency: "CNY"}}},
 	},
 	{
 		Provider: "longcat", Model: "LongCat-2.0", Currency: "USD",
-		BillingMode: BillingModePAYG, DocURL: DocLongCatPricingUSD, Notes: "launch_discount_no_end_date", CheckedOn: checkedOn,
+		BillingMode: BillingModePAYG, DocURL: DocLongCatPricingUSD, Notes: "launch_discount_no_end_date", CheckedOn: longcatCheckedOn,
 		Rates: []rateGeneration{{Base: RateCard{CacheHit: 0.006, Input: 0.30, Output: 1.20, Currency: "USD"}}},
 	},
 
@@ -140,30 +143,30 @@ var officialRates = []officialRateRow{
 	// MiMo domestic PAYG; Token Plan bills the same rates as subscription_equivalent.
 	{
 		Provider: "mimo", Model: "mimo-v2.5-pro", Currency: "CNY",
-		BillingMode: BillingModePAYG, DocURL: DocMiMoPAYG, CheckedOn: checkedOn,
+		BillingMode: BillingModePAYG, DocURL: DocMiMoPAYG, CheckedOn: mimoV25CheckedOn, RetiredOn: "2026-10-21",
 		Rates: []rateGeneration{{Base: RateCard{CacheHit: 0.025, Input: 3, Output: 6, Currency: "CNY"}}},
 	},
 	{
 		Provider: "mimo", Model: "mimo-v2.5", Currency: "CNY",
-		BillingMode: BillingModePAYG, DocURL: DocMiMoPAYG, CheckedOn: checkedOn,
+		BillingMode: BillingModePAYG, DocURL: DocMiMoPAYG, CheckedOn: mimoV25CheckedOn, RetiredOn: "2026-10-21",
 		Rates: []rateGeneration{{Base: RateCard{CacheHit: 0.02, Input: 1, Output: 2, Currency: "CNY"}}},
 	},
-	// Not on the vendor's price page as of CheckedOn. Kept because removing a rate
-	// is what turns a still-configured model's cost silently into zero; a stale
-	// rate at least reads as a number somebody can question.
+	// Not on the vendor's price page as of CheckedOn, and retired 2026-06-30 in
+	// favour of mimo-v2.5. Kept because removing a rate is what turns a
+	// still-configured model's cost silently into zero.
 	{
 		Provider: "mimo", Model: "mimo-v2-flash", Currency: "CNY",
-		BillingMode: BillingModePAYG, DocURL: DocMiMoPAYG, Notes: "not_on_vendor_page", CheckedOn: checkedOn,
+		BillingMode: BillingModePAYG, DocURL: DocMiMoPAYG, Notes: "not_on_vendor_page", CheckedOn: mimoV25CheckedOn, RetiredOn: "2026-06-30",
 		Rates: []rateGeneration{{Base: RateCard{CacheHit: 0.07, Input: 0.70, Output: 2.10, Currency: "CNY"}}},
 	},
 	{
 		Provider: "mimo", Model: "mimo-v2.5-pro", Currency: "CNY",
-		BillingMode: BillingModeSubscriptionEquivalent, DocURL: DocMiMoTokenPlan, Notes: "payg_equivalent_not_plan_bill", CheckedOn: checkedOn,
+		BillingMode: BillingModeSubscriptionEquivalent, DocURL: DocMiMoTokenPlan, Notes: "payg_equivalent_not_plan_bill", CheckedOn: mimoV25CheckedOn, RetiredOn: "2026-10-21",
 		Rates: []rateGeneration{{Base: RateCard{CacheHit: 0.025, Input: 3, Output: 6, Currency: "CNY"}}},
 	},
 	{
 		Provider: "mimo", Model: "mimo-v2.5", Currency: "CNY",
-		BillingMode: BillingModeSubscriptionEquivalent, DocURL: DocMiMoTokenPlan, Notes: "payg_equivalent_not_plan_bill", CheckedOn: checkedOn,
+		BillingMode: BillingModeSubscriptionEquivalent, DocURL: DocMiMoTokenPlan, Notes: "payg_equivalent_not_plan_bill", CheckedOn: mimoV25CheckedOn, RetiredOn: "2026-10-21",
 		Rates: []rateGeneration{{Base: RateCard{CacheHit: 0.02, Input: 1, Output: 2, Currency: "CNY"}}},
 	},
 	{
@@ -265,7 +268,7 @@ func officialRateRowsFor(provider, model, currency string) []officialRateRow {
 // pay-as-you-go rate, which is the one an unsubscribed caller is charged.
 func CurrentRate(provider, model, currency string) *RateCard {
 	for _, row := range officialRateRowsFor(provider, model, currency) {
-		if row.BillingMode == BillingModeSubscriptionEquivalent {
+		if row.BillingMode == BillingModeSubscriptionEquivalent || row.retiredToday() {
 			continue
 		}
 		if len(row.Rates) > 0 {
@@ -274,6 +277,13 @@ func CurrentRate(provider, model, currency string) *RateCard {
 		}
 	}
 	return nil
+}
+
+// retiredToday reports whether the vendor has stopped answering for this model.
+// The row stays in the catalog so stored prices and old usage still value; it is
+// only withdrawn from being offered as a current rate.
+func (r officialRateRow) retiredToday() bool {
+	return r.RetiredOn != "" && r.RetiredOn <= today()
 }
 
 // IsOfficialCard reports whether card is a rate this project has shipped for the
@@ -347,5 +357,6 @@ func (r officialRateRow) entry(model string, current rateGeneration) CatalogEntr
 		CacheHit: current.Base.CacheHit, Input: current.Base.Input, Output: current.Base.Output,
 		Peak: peak, Window: r.Window, DocURL: r.DocURL,
 		BillingMode: r.BillingMode, Notes: r.Notes, CheckedOn: r.CheckedOn,
+		EffectiveTo: r.RetiredOn,
 	}
 }
