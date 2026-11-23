@@ -204,7 +204,18 @@ func officialVendorPrices(vendor, currency string, models []string) map[string]*
 }
 
 func officialVendorPrice(vendor, currency, model string) *provider.Pricing {
-	return pricingFromRateCard(pricing.CurrentRate(vendor, model, currency))
+	if card := pricing.CurrentRate(vendor, model, currency); card != nil {
+		return pricingFromRateCard(card)
+	}
+	// A retired model still has a published rate, and the preset and stored-cost
+	// paths need that number: dropping it turns a still-configured model's cost
+	// silently into zero. Quoting surfaces read CurrentRate, where retirement bites.
+	entry, ok := pricing.LookupCatalog(vendor, model, currency, "")
+	if !ok {
+		return nil
+	}
+	card := pricing.RateCardFromCatalog(entry)
+	return pricingFromRateCard(&card)
 }
 
 func mimoDomesticPrices(models []string) map[string]*provider.Pricing {

@@ -45,7 +45,9 @@ func TestSupersededRatesExcludeTheCurrentOne(t *testing.T) {
 	for _, row := range officialRates {
 		current := CurrentRate(row.Provider, row.Model, row.Currency)
 		if current == nil {
-			if row.BillingMode != BillingModeSubscriptionEquivalent {
+			// A subscription-equivalent row quotes no current rate by design, and
+			// a retired row no longer has one: the vendor stopped answering.
+			if row.BillingMode != BillingModeSubscriptionEquivalent && row.RetiredOn == "" {
 				t.Errorf("%s/%s/%s has no current rate", row.Provider, row.Model, row.Currency)
 			}
 			continue

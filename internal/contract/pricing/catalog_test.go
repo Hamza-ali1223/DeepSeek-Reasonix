@@ -56,6 +56,7 @@ const pricesGoStaleAfter = 90 * 24 * time.Hour
 func TestCatalogPricesHaveBeenCheckedRecently(t *testing.T) {
 	var undated, stale []string
 	cutoff := time.Now().UTC().Add(-pricesGoStaleAfter)
+	today := time.Now().UTC()
 	for _, e := range OfficialCatalog() {
 		where := e.Provider + "/" + e.Model + " " + e.Currency + " (" + e.DocURL + ")"
 		if e.CheckedOn == "" {
@@ -65,6 +66,11 @@ func TestCatalogPricesHaveBeenCheckedRecently(t *testing.T) {
 		on, err := time.Parse("2006-01-02", e.CheckedOn)
 		if err != nil {
 			t.Fatalf("%s: CheckedOn %q is not YYYY-MM-DD", where, e.CheckedOn)
+		}
+		// A retired row states history rather than a live price, so re-reading
+		// its page cannot correct anything. Its date still has to parse.
+		if !e.InEffect(today) {
+			continue
 		}
 		if on.Before(cutoff) {
 			stale = append(stale, where+" last checked "+e.CheckedOn)

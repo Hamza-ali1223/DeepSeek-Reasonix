@@ -20,8 +20,10 @@ func TestMimoV26RatesFollowTheVendorPage(t *testing.T) {
 		if tc.v25Twin == "" {
 			continue
 		}
-		old := CurrentRate("mimo", tc.v25Twin, "CNY")
-		if old == nil || *old != *got {
+		old, ok := LookupCatalog("mimo", tc.v25Twin, "CNY", BillingModePAYG)
+		// The twin is retired, so it is no longer a current rate; its published
+		// numbers stay in the catalog because usage was billed at them.
+		if !ok || old.CacheHit != got.CacheHit || old.Input != got.Input || old.Output != got.Output {
 			t.Fatalf("%s must keep its published rate beside %s: %+v vs %+v", tc.v25Twin, tc.model, old, got)
 		}
 	}
