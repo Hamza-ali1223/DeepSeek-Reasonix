@@ -27,27 +27,42 @@ func (s *Session) AttachTurnReceipts(floor int, receipts []*provider.DecisionRec
 		// Never append here: the announced slot may still be empty.
 		return false
 	}
-	held := make(map[string]bool, len(s.Messages[target].DecisionReceipts))
-	for _, r := range s.Messages[target].DecisionReceipts {
-		if r != nil {
-			held[r.ID] = true
-		}
+	s.attachReceiptsLocked(target, receipts)
+	return true
+}
+
+// AttachRecoveredTurnReceipts uses the recovered user message as the carrier
+// because recovery can discard the unfinished assistant reply.
+func (s *Session) AttachRecoveredTurnReceipts(userIndex int, receipts []*provider.DecisionReceipt) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if userIndex < 0 || userIndex >= len(s.Messages) {
+		return false
 	}
+	user := s.Messages[userIndex]
+	if user.Role != provider.RoleUser || user.LocalOnly {
+		return false
+	}
+	s.attachReceiptsLocked(userIndex, receipts)
+	return true
+}
+
+func (s *Session) attachReceiptsLocked(target int, receipts []*provider.DecisionReceipt) {
 	existing := s.receiptIDsLocked()
-	added := false
+	var added []*provider.DecisionReceipt
 	for _, r := range receipts {
-		if r == nil || existing[r.ID] || held[r.ID] {
+		if r == nil || existing[r.ID] {
 			continue
 		}
-		held[r.ID] = true
-		s.Messages[target].DecisionReceipts = append(s.Messages[target].DecisionReceipts, r)
-		added = true
+		existing[r.ID] = true
+		added = append(added, r)
 	}
-	if added {
+	if len(added) > 0 {
+		current := s.Messages[target].DecisionReceipts
+		s.Messages[target].DecisionReceipts = append(current[:len(current):len(current)], added...)
 		s.rewriteVersion++
 		s.version++
 	}
-	return true
 }
 
 // receiptIDsLocked collects every receipt id in the transcript, so a retried

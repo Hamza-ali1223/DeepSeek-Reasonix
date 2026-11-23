@@ -120,7 +120,7 @@ func (o *turnOrchestrator) runSubagentSkillTurns(ctx context.Context, skills []s
 
 	input := c.imageRoutingPrefix(images) + c.compose(task, raw, true)
 	startMessages := c.messageCount()
-	var marker sessionstore.InFlightTurnMeta
+	var marker activeTurn
 	defer func() { c.finishInFlightTurn(startMessages, marker) }()
 	defer c.recordDisplayForNewUser(startMessages, display)
 	// The checkpoint prompt labels the turn in the rewind picker (and is
@@ -209,7 +209,7 @@ func (o *turnOrchestrator) runOrchestratedTurn(ctx context.Context, turn orchest
 		return nil
 	}
 	startMessages := c.messageCount()
-	var marker sessionstore.InFlightTurnMeta
+	var marker activeTurn
 	defer func() { c.finishInFlightTurn(startMessages, marker) }()
 	defer c.recordDisplayForNewUser(startMessages, turn.display)
 	if turn.editedOriginal != "" {
@@ -356,7 +356,7 @@ func (c *Controller) announceAuthoredTurn(ctx context.Context, raw string, msgIn
 // openTurnBoundary marks the turn in flight and opens its boundary. One call
 // because they are one decision: the index the marker records is the index the
 // announcement names.
-func (c *Controller) openTurnBoundary(ctx context.Context, turn orchestratedTurn, msgIndex int) (context.Context, sessionstore.InFlightTurnMeta) {
+func (c *Controller) openTurnBoundary(ctx context.Context, turn orchestratedTurn, msgIndex int) (context.Context, activeTurn) {
 	ctx, marker := c.beginTurn(ctx, msgIndex, !turn.synthetic && !IsSyntheticUserMessage(turn.raw))
 	if turn.synthetic {
 		if turn.opensTurn {

@@ -426,9 +426,9 @@ func (c *Controller) recoverInterruptedTurn(path string) {
 		if digest, digestErr := c.executor.Session().ContentDigest(); digestErr != nil {
 			slog.Warn("controller: digest resumed in-flight turn", "err", digestErr)
 		} else if digest == marker.CommitDigest {
-			// Committed, cleanup interrupted: the receipts are already in that
-			// transcript, so attaching is a no-op by id and the marker can go.
-			c.settleTurnReceipts(*marker)
+			if !c.recoverCommittedTurnReceipts(*marker) {
+				return
+			}
 			if _, err := sessionstore.ClearSessionInFlightTurnIfMatch(path, *marker); err != nil {
 				slog.Warn("controller: clear committed in-flight turn marker", "err", err)
 			}
@@ -449,13 +449,24 @@ func (c *Controller) recoverInterruptedTurn(path string) {
 	}
 	changed := found && len(msgs) > start
 	if changed {
+		recoveringReceipts := marker.PreserveUser && len(marker.PendingReceipts) > 0
 		if marker.PreserveUser {
 			c.stripCancelledVisibleTurnMessagesAfterWithFallbackAt(start, provider.Message{}, marker.StartedAt)
+			if recoveringReceipts && !c.executor.Session().AttachRecoveredTurnReceipts(start, marker.PendingReceipts) {
+				slog.Warn("controller: keeping in-flight marker without a recovered receipt carrier", "marker_id", marker.ID)
+				return
+			}
 		} else {
 			c.stripTurnMessagesAfter(start)
 		}
-		if err := c.snapshot(false, true, false); err != nil {
+		durable, err := c.guardedSnapshotWithDurability(false, true, false)
+		if err != nil {
 			slog.Warn("controller: post-interrupted-turn snapshot", "err", err)
+		} else {
+			c.persistSessionGrants()
+		}
+		if recoveringReceipts && !durable {
+			return
 		}
 	}
 	// A stripped turn was abandoned before its user message landed, so its

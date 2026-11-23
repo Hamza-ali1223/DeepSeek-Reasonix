@@ -2,24 +2,34 @@ package control
 
 import (
 	"context"
-	"reasonix/internal/state/sessionstore"
+	"crypto/rand"
 	"strings"
 
 	"reasonix/internal/runtime/delegation"
 	"reasonix/internal/state/execjournal"
+	"reasonix/internal/state/sessionstore"
 )
 
-// beginTurn marks the turn and hands back a context carrying its identity, so
-// every path that starts one gives its tools the same durable turn identity —
-// the only thing a delegation opened mid-turn can be recorded against.
-func (c *Controller) beginTurn(ctx context.Context, startMessageIndex int, preserveUser bool) (context.Context, sessionstore.InFlightTurnMeta) {
+type activeTurn struct {
+	sessionstore.InFlightTurnMeta
+	receipt turnStamp
+}
+
+// beginTurn gives approval receipts a turn identity even without a disk marker.
+// Delegation uses the durable marker identity when one exists.
+func (c *Controller) beginTurn(ctx context.Context, startMessageIndex int, preserveUser bool) (context.Context, activeTurn) {
 	c.applyPeerSwitches()
 	c.settings.proposals.Store(0)
 	marker := c.markInFlightTurn(startMessageIndex, preserveUser)
+	stamp := turnStamp{id: marker.ID, start: startMessageIndex}
 	if marker.ID != "" {
 		ctx = delegation.WithTurnIdentity(ctx, marker.ID)
+	} else {
+		stamp.id = rand.Text()
+		marker.StartMessageIndex = startMessageIndex
+		marker.PreserveUser = preserveUser
 	}
-	return ctx, marker
+	return context.WithValue(ctx, receiptTurnKey{}, stamp), activeTurn{InFlightTurnMeta: marker, receipt: stamp}
 }
 
 // A delegation opened mid-turn is a fact no later state can re-derive: its turn
