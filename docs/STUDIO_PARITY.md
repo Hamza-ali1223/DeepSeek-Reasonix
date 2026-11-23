@@ -60,6 +60,7 @@ Checked against `studio` at `d779d89bc` on 2026-10-08.
 | Model picker with vendor icons, search and favourites | Missing | #12354, #11403 |
 | Reasoning effort picker | Have differently | Names plus one-line descriptions, only levels the model supports; do not revert to raw `high` and `max` |
 | Agent composition / Agent 组合 | Have differently | One composer status-row menu for selection and management; Standard/Minimal cards and separate custom presets in Settings → Agent presets (`ui/AgentPresets.tsx`). 输入框顶部统一菜单选择和管理组合，管理页提供标准、精简两种内置卡片和独立自定义区域，默认不绑定，明确选择精简／自定义组合后启用；人设保留前后缀与运行时上下文开关。 |
+| Agent + Planner work mode | Have | The composer can request dedicated planning before execution. Planner settings control optional consultations and research access for newly opened sessions. See the [fork spec](fork_docs/agent+planner-mode-spec.md). |
 | Approval card offering "allow matching actions this session" | Unverified | Mock fixture shows two buttons only; #12020 (closed) |
 | Plan and todo panel | Have | `ui/Plan.tsx` |
 | Subagents panel | Have differently | `ui/Pane.tsx`, `ui/delegation.ts`; running-state gaps in #12410, #12284 |
@@ -82,7 +83,7 @@ Checked against `studio` at `d779d89bc` on 2026-10-08.
 | Display currency | Have differently | `ui/DisplayCurrency.tsx`; not on the first settings screen; #11943 (closed) |
 | Configurable bottom status bar | Have differently | Fixed run strip in `ui/RuntimeBar.tsx`; no item configuration found |
 | Context window card | Have differently | `ui/ContextSummaryCard.tsx`, `ui/MeterRail.tsx`; the 1.x overview panel is not open by default |
-| Usage statistics | Have | `ui/ModelUsage.tsx` |
+| Usage statistics | Have | `ui/ModelUsage.tsx` and Session Overview show planner and executor usage by source when reported. |
 | Model service management layout | Have differently | Settings provider list and form; #10761 (closed) |
 | Close to tray | Have | `ui/WindowSection.tsx` |
 | Update notes in the app | Have differently | `ui/Versions.tsx`; release notes mirrored by #12406 |
