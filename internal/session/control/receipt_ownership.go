@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"reasonix/internal/contract/provider"
-	"reasonix/internal/runtime/delegation"
 	"reasonix/internal/state/sessionstore"
 )
 
@@ -13,28 +12,11 @@ import (
 // plan card can be answered before the turn's user message lands, so the receipt
 // waits on the turn's own marker until a message in that turn can carry it.
 
-// currentTurnStamp reads the in-flight turn from the context beginTurn built. The
-// index is the marker's own start, which is what the host announced.
-func (c *Controller) currentTurnStamp(ctx context.Context) turnStamp {
-	id := delegation.TurnIdentity(ctx)
-	if id == "" {
-		return turnStamp{}
-	}
-	return turnStamp{id: id, start: c.inFlightTurnStart(id)}
-}
+type receiptTurnKey struct{}
 
-// inFlightTurnStart is the announced start index of the marker with this id, or
-// 0 when no durable marker carries it.
-func (c *Controller) inFlightTurnStart(id string) int {
-	path := c.SessionPath()
-	if path == "" || id == "" {
-		return 0
-	}
-	meta, ok, err := sessionstore.LoadBranchMeta(path)
-	if err != nil || !ok || meta.InFlightTurn == nil || meta.InFlightTurn.ID != id {
-		return 0
-	}
-	return meta.InFlightTurn.StartMessageIndex
+func (c *Controller) currentTurnStamp(ctx context.Context) turnStamp {
+	stamp, _ := ctx.Value(receiptTurnKey{}).(turnStamp)
+	return stamp
 }
 
 // holdTurnReceipt keeps a receipt out of the transcript until its turn can carry
@@ -97,9 +79,8 @@ func (c *Controller) dropTurnReceipts(id string) {
 	c.mu.Unlock()
 }
 
-// settleTurnReceipts attaches pending receipts to this turn's own reply and
-// reports whether the pending state may be cleared. Without a carrier they stay
-// pending: they are never attached to a later turn.
+// settleTurnReceipts uses the turn's reply or, if absent, its retained request.
+// Without a carrier, the receipts remain pending.
 func (c *Controller) settleTurnReceipts(turn sessionstore.InFlightTurnMeta) bool {
 	if c == nil || c.executor == nil {
 		return true
@@ -108,9 +89,36 @@ func (c *Controller) settleTurnReceipts(turn sessionstore.InFlightTurnMeta) bool
 	if len(receipts) == 0 {
 		return true
 	}
-	if c.executor.Session().AttachTurnReceipts(turn.StartMessageIndex, receipts) {
+	sess := c.executor.Session()
+	if turn.PreserveUser {
+		msgs := sess.Snapshot()
+		start, found := resolveInterruptedTurnStart(msgs, turn.StartMessageIndex, true, turn.StartedAt, provider.Message{})
+		if found && !interruptedTurnCrossesLaterTurn(msgs, start) &&
+			(sess.AttachTurnReceipts(start, receipts) || sess.AttachRecoveredTurnReceipts(start, receipts)) {
+			return true
+		}
+	} else if sess.AttachTurnReceipts(turn.StartMessageIndex, receipts) {
 		return true
 	}
 	c.keepPendingReceipt(turn.ID, receipts...)
 	return false
+}
+
+func (c *Controller) recoverCommittedTurnReceipts(turn sessionstore.InFlightTurnMeta) bool {
+	if len(turn.PendingReceipts) == 0 {
+		return true
+	}
+	sess := c.executor.Session()
+	before := sess.RewriteVersion()
+	if !c.settleTurnReceipts(turn) {
+		return false
+	}
+	if sess.RewriteVersion() == before {
+		return true
+	}
+	durable, err := c.guardedSnapshotWithDurability(false, true, false)
+	if err != nil {
+		slog.Warn("controller: save committed turn receipts", "err", err)
+	}
+	return durable
 }

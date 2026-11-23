@@ -7,7 +7,6 @@ package control
 import (
 	"context"
 	"fmt"
-	"reasonix/internal/state/sessionstore"
 	"slices"
 	"strings"
 
@@ -244,7 +243,7 @@ func (c *Controller) runReady(ctx context.Context, input string) (err error) {
 		return nil
 	}
 	startMessages := c.messageCount()
-	var marker sessionstore.InFlightTurnMeta
+	var marker activeTurn
 	defer func() { c.finishInFlightTurn(startMessages, marker) }()
 	if err := c.beginCheckpoint(ctx, input); err != nil {
 		return err

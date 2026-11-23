@@ -402,11 +402,19 @@ func (c *Controller) markInFlightTurn(startMessageIndex int, preserveUser bool) 
 // finishInFlightTurn persists the completed transcript before removing the
 // crash marker. A crash can therefore leave either a recoverable marker or a
 // durable completed transcript, never an unmarked in-memory-only suffix.
-func (c *Controller) finishInFlightTurn(startMessages int, marker sessionstore.InFlightTurnMeta) {
+func (c *Controller) finishInFlightTurn(startMessages int, turn activeTurn) {
+	marker := turn.InFlightTurnMeta
 	// 1. Give this turn's receipts their carrier in memory first. The digest below
 	// is then computed over the transcript that actually contains them, so the
 	// marker's commit evidence and the saved bytes agree.
-	c.settleTurnReceipts(marker)
+	receiptTurn := marker
+	if marker.ID == "" {
+		receiptTurn.ID = turn.receipt.id
+	}
+	receiptsSettled := c.settleTurnReceipts(receiptTurn)
+	if marker.ID == "" {
+		c.dropTurnReceipts(turn.receipt.id)
+	}
 	commitPrepared := marker.ID == ""
 	if marker.ID != "" && c.executor != nil {
 		digest, digestErr := c.executor.Session().ContentDigest()
@@ -423,7 +431,7 @@ func (c *Controller) finishInFlightTurn(startMessages int, marker sessionstore.I
 	// 2. Save the transcript. Pending receipts survive a failed save so the next
 	// attempt can still attach them to this same turn.
 	durable, err := c.snapshotActivityIfChanged(startMessages)
-	if err != nil && !durable {
+	if !durable {
 		// Keep the marker when the transcript did not become durable. Resume can
 		// then retry recovery instead of treating an in-memory-only tail as done.
 		slog.Warn("controller: keeping in-flight marker after failed turn snapshot", "err", err)
@@ -436,6 +444,9 @@ func (c *Controller) finishInFlightTurn(startMessages int, marker sessionstore.I
 		// Do not clear an unprepared marker: a crash between the snapshot and this
 		// point would otherwise leave recovery without exact commit evidence.
 		slog.Warn("controller: keeping in-flight marker without commit digest", "marker_id", marker.ID)
+		return
+	}
+	if !receiptsSettled && c.messageCount() > startMessages {
 		return
 	}
 	// 3. The transcript is durable, so the receipts are now in it. Drop the

@@ -114,8 +114,8 @@ type Message struct {
 	LocalOnly       bool             `json:"local_only,omitempty"`
 	DecisionReceipt *DecisionReceipt `json:"decision_receipt,omitempty"`
 	// DecisionReceipts are local-only metadata attached to a provider-visible
-	// message. Keeping them on the existing assistant record preserves the
-	// assistant/tool-result adjacency required by current and older readers.
+	// message: the assistant reply or the recovered user message after an
+	// interruption. This preserves assistant/tool-result adjacency.
 	// ModelMessages strips the field before handing requests to providers.
 	DecisionReceipts []*DecisionReceipt       `json:"decision_receipts,omitempty"`
 	InterruptedTurn  *InterruptedTurnRecovery `json:"interrupted_turn,omitempty"`

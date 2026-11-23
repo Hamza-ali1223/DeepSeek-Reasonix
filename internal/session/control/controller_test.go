@@ -438,7 +438,7 @@ func TestFinishInFlightTurnKeepsMarkerUntilSnapshotSucceeds(t *testing.T) {
 	c := New(Options{Executor: exec, SessionDir: dir, SessionPath: path, Label: "test"})
 
 	start := sess.Len()
-	marker := c.markInFlightTurn(start, true)
+	_, marker := c.beginTurn(t.Context(), start, true)
 	if marker.ID == "" {
 		t.Fatal("in-flight marker was not created")
 	}
