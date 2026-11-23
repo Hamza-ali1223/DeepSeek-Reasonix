@@ -68,6 +68,15 @@ var shippedPresets = []shippedPreset{
 	{PresetID: "mimo-token-plan-sgp-anthropic", Models: legacyMimoModels, Window: new(legacyMimoWindow), Default: legacyMimoModels[0], Vision: legacyMimoVision},
 	{PresetID: "mimo-token-plan-ams", Models: legacyMimoModels, Window: new(legacyMimoWindow), Default: legacyMimoModels[0], Vision: legacyMimoVision},
 	{PresetID: "mimo-token-plan-ams-anthropic", Models: legacyMimoModels, Window: new(legacyMimoWindow), Default: legacyMimoModels[0], Vision: legacyMimoVision},
+	// The V2.6 catalog with the retired names still listed beside it.
+	{PresetID: "mimo-api", Models: intermediateMimoPAYGModels, Window: new(mimoContextWindow), Default: "mimo-v2.6-pro", Vision: intermediateMimoVision},
+	{PresetID: "mimo-anthropic", Models: intermediateMimoPAYGModels, Window: new(mimoContextWindow), Default: "mimo-v2.6-pro", Vision: intermediateMimoVision},
+	{PresetID: "mimo-token-plan-cn", Models: intermediateMimoModels, Window: new(mimoContextWindow), Default: "mimo-v2.6-pro", Vision: intermediateMimoVision},
+	{PresetID: "mimo-token-plan-cn-anthropic", Models: intermediateMimoModels, Window: new(mimoContextWindow), Default: "mimo-v2.6-pro", Vision: intermediateMimoVision},
+	{PresetID: "mimo-token-plan-sgp", Models: intermediateMimoModels, Window: new(mimoContextWindow), Default: "mimo-v2.6-pro", Vision: intermediateMimoVision},
+	{PresetID: "mimo-token-plan-sgp-anthropic", Models: intermediateMimoModels, Window: new(mimoContextWindow), Default: "mimo-v2.6-pro", Vision: intermediateMimoVision},
+	{PresetID: "mimo-token-plan-ams", Models: intermediateMimoModels, Window: new(mimoContextWindow), Default: "mimo-v2.6-pro", Vision: intermediateMimoVision},
+	{PresetID: "mimo-token-plan-ams-anthropic", Models: intermediateMimoModels, Window: new(mimoContextWindow), Default: "mimo-v2.6-pro", Vision: intermediateMimoVision},
 	{PresetID: "longcat-openai", Models: longCat20Models, Window: new(legacyLongCat20ContextWindow), Default: longCat20Models[0]},
 	{PresetID: "longcat-anthropic", Models: longCat20Models, Window: new(legacyLongCat20ContextWindow), Default: longCat20Models[0]},
 	{PresetID: "qwen-cn", CurrentModels: true, Window: new(0), ByName: true},
@@ -269,8 +278,24 @@ func (s shippedPreset) upgradedVisionModels(p *ProviderEntry, canonical Provider
 	// nil is "never said" and is ours to fill; the list we shipped is ours to
 	// move. Anything else they chose — an explicitly empty list most of all,
 	// which says no model here reads images and must survive the upgrade.
-	if p.VisionModels != nil && !(s.Vision != nil && stringSlicesEqual(p.VisionModels, s.Vision)) {
+	shipped := s.Vision != nil && stringSlicesEqual(p.VisionModels, s.Vision)
+	if p.VisionModels != nil && !shipped {
 		return nil, false
+	}
+	// Holding the list we shipped, the whole list moves with the shape: `added`
+	// cannot see a change that only withdraws models, which is what retiring one
+	// does.
+	if shipped {
+		out := make([]string, 0, len(canonical.VisionModels))
+		for _, model := range canonical.VisionModels {
+			if containsString(canonical.Models, model) {
+				out = append(out, model)
+			}
+		}
+		if stringSlicesEqual(p.VisionModels, out) {
+			return nil, false
+		}
+		return out, true
 	}
 	marks := false
 	for _, model := range added {

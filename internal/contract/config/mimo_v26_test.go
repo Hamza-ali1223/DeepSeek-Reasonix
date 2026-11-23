@@ -40,17 +40,22 @@ func TestMimoPresetsLeadWithV26AndDeclareOneWindow(t *testing.T) {
 		if e.Default != "mimo-v2.6-pro" || e.Models[0] != "mimo-v2.6-pro" {
 			t.Fatalf("%s default/first = %q/%q, want mimo-v2.6-pro", id, e.Default, e.Models[0])
 		}
-		for _, m := range []string{"mimo-v2.6-flash", "mimo-v2.5-pro", "mimo-v2.5"} {
+		for _, m := range []string{"mimo-v2.6-flash", "mimo-v2.6-pro"} {
 			if !e.HasModel(m) {
 				t.Fatalf("%s models = %v, missing %s", id, e.Models, m)
+			}
+		}
+		for _, m := range []string{"mimo-v2.5", "mimo-v2.5-pro", "mimo-v2-pro", "mimo-v2-omni", "mimo-v2-flash"} {
+			if e.HasModel(m) {
+				t.Fatalf("%s offers retired model %s; the vendor retired it on 2026-10-21", id, m)
 			}
 		}
 		if e.ContextWindow != 1_000_000 {
 			t.Fatalf("%s window = %d, want 1000000", id, e.ContextWindow)
 		}
-		for _, m := range []string{"mimo-v2.6-pro", "mimo-v2.6-flash", "mimo-v2.6-pro-ultraspeed", "mimo-v2.5-pro"} {
-			if e.HasVisionModel(m) {
-				t.Fatalf("%s marks %s image-taking; the docs do not say so", id, m)
+		for _, m := range e.Models {
+			if !e.HasVisionModel(m) {
+				t.Fatalf("%s does not mark %s image-taking; the vendor's Image Understanding page names it", id, m)
 			}
 		}
 		for _, m := range e.Models {
@@ -93,8 +98,8 @@ func TestShippedMimoPresetUpgradeMovesOnlyUntouchedShape(t *testing.T) {
 		if !reflect.DeepEqual(got.Models, canonical.Models) || got.Default != "mimo-v2.6-pro" {
 			t.Fatalf("%s: models/default = %v/%q, want %v/mimo-v2.6-pro", id, got.Models, got.Default, canonical.Models)
 		}
-		if !reflect.DeepEqual(got.VisionModels, []string{"mimo-v2.5"}) || got.ContextWindow != 1_000_000 {
-			t.Fatalf("%s: vision/window = %v/%d, want [mimo-v2.5]/1000000", id, got.VisionModels, got.ContextWindow)
+		if !reflect.DeepEqual(got.VisionModels, canonical.VisionModels) || got.ContextWindow != 1_000_000 {
+			t.Fatalf("%s: vision/window = %v/%d, want %v/1000000", id, got.VisionModels, got.ContextWindow, canonical.VisionModels)
 		}
 		if got.Prices["mimo-v2.5-pro"].Input != 9 {
 			t.Fatalf("%s: a price the user wrote was overwritten", id)

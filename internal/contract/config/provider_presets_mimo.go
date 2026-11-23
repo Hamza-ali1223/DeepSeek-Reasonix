@@ -9,11 +9,22 @@ const (
 )
 
 var (
-	mimoModels       = []string{"mimo-v2.6-pro", "mimo-v2.6-flash", "mimo-v2.5-pro", "mimo-v2.5"}
-	mimoPAYGModels   = []string{"mimo-v2.6-pro", "mimo-v2.6-flash", "mimo-v2.6-pro-ultraspeed", "mimo-v2.5-pro", "mimo-v2.5"}
-	mimoVisionList   = []string{"mimo-v2.5"}
+	mimoModels       = []string{"mimo-v2.6-pro", "mimo-v2.6-flash"}
+	mimoPAYGModels   = []string{"mimo-v2.6-pro", "mimo-v2.6-flash", "mimo-v2.6-pro-ultraspeed"}
+	mimoVisionList   = []string{"mimo-v2.6-pro", "mimo-v2.6-flash"}
+	mimoVisionPayg   = []string{"mimo-v2.6-pro", "mimo-v2.6-flash", "mimo-v2.6-pro-ultraspeed"}
 	legacyMimoModels = []string{"mimo-v2.5-pro", "mimo-v2.5"}
 	legacyMimoVision = []string{"mimo-v2.5"}
+	// The shape shipped between the V2.6 catalog and the 2026-10-21 retirement:
+	// the live models listed beside the retired names.
+	intermediateMimoModels     = []string{"mimo-v2.6-pro", "mimo-v2.6-flash", "mimo-v2.5-pro", "mimo-v2.5"}
+	intermediateMimoPAYGModels = []string{"mimo-v2.6-pro", "mimo-v2.6-flash", "mimo-v2.6-pro-ultraspeed", "mimo-v2.5-pro", "mimo-v2.5"}
+	intermediateMimoVision     = []string{"mimo-v2.5"}
+	// Backfill catalogs keep the retired names. A preset is what we offer; a
+	// backfill is what we recognise, and an entry we fill in for an existing
+	// config may name a retired model that its own list then has to contain.
+	mimoBackfillModels          = []string{"mimo-v2.6-pro", "mimo-v2.6-flash", "mimo-v2.6-pro-ultraspeed", "mimo-v2.5-pro", "mimo-v2.5"}
+	mimoTokenPlanBackfillModels = []string{"mimo-v2.6-pro", "mimo-v2.6-flash", "mimo-v2.5-pro", "mimo-v2.5"}
 )
 
 var mimoPresets = []ProviderPreset{
@@ -28,7 +39,7 @@ var mimoPresets = []ProviderPreset{
 			Kind:          "openai",
 			BaseURL:       "https://api.xiaomimimo.com/v1",
 			Models:        mimoPAYGModels,
-			VisionModels:  mimoVisionList,
+			VisionModels:  mimoVisionPayg,
 			Default:       mimoModels[0],
 			APIKeyEnv:     "MIMO_API_KEY",
 			ContextWindow: mimoContextWindow,
@@ -47,7 +58,7 @@ var mimoPresets = []ProviderPreset{
 			Kind:          "anthropic",
 			BaseURL:       "https://api.xiaomimimo.com/anthropic",
 			Models:        mimoPAYGModels,
-			VisionModels:  mimoVisionList,
+			VisionModels:  mimoVisionPayg,
 			Default:       mimoModels[0],
 			APIKeyEnv:     "MIMO_API_KEY",
 			Thinking:      "adaptive",
