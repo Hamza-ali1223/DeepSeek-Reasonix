@@ -37,6 +37,9 @@ func (*ConcludeNoChangesTool) Schema() json.RawMessage {
 
 func (*ConcludeNoChangesTool) ReadOnly() bool { return true }
 
+// ExitsTurn is true: a conclusion ends the planning turn with the answer.
+func (*ConcludeNoChangesTool) ExitsTurn() bool { return true }
+
 // ProviderVisible mirrors submit_plan: the schema stays constant for cache
 // stability and availability is decided when the call runs.
 func (*ConcludeNoChangesTool) ProviderVisible(ctx context.Context) bool {

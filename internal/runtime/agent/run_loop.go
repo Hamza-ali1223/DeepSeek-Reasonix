@@ -554,6 +554,15 @@ func (a *Agent) handleToolRound(ctx context.Context, state *turnRuntime, step in
 		a.recordInterruptedDisplay("", "", nil, true, state.workDurationMs(), "")
 		return false, ctx.Err()
 	}
+	// A finalizing turn gets exactly one such round. Delivering the result ends
+	// it cleanly; anything else ends it with the pause, so research closed for
+	// good and no round can be spent on it.
+	if state.graceRound && state.landCause.exit {
+		if finalizationDelivered(ctx) {
+			return false, nil
+		}
+		return false, a.gracePause(ctx, state)
+	}
 	if pause := a.settleProgressRound(ctx, state, mark); pause != nil {
 		return false, pause
 	}
@@ -578,7 +587,7 @@ func (a *Agent) handleToolRound(ctx context.Context, state *turnRuntime, step in
 		return true, nil
 	}
 	if state.runMaxSteps > 0 && step+1 >= state.runMaxSteps {
-		a.armFinalizationRound(state, landCause{kind: "max_steps", detail: fmt.Sprintf(
+		a.armFinalizationRound(state, landCause{kind: "max_steps", exit: hasStructuredExit(ctx), detail: fmt.Sprintf(
 			"budget (%s=%d) exhausted: one grace round to finalize", state.runMaxStepsKey, state.runMaxSteps)})
 	}
 	return true, nil

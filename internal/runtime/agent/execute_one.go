@@ -23,6 +23,11 @@ import (
 // visible when the model calls it from stale context.
 const CodeMCPToolDisabled = tool.CodeMCPToolDisabled
 
+// CodeResearchClosed identifies a research call refused because the turn's
+// research rounds are spent. The turn can still deliver its result, so this is
+// not the same refusal as a spent budget that closes the turn.
+const CodeResearchClosed = "budget.research_closed"
+
 // toolCallPlan holds the resolved, policy-checked state for one tool call.
 // Package-private; not shared across goroutines beyond the single executeOne
 // invocation that owns it.
@@ -232,6 +237,9 @@ func (a *Agent) parseToolCall(ctx context.Context, plan *toolCallPlan) (toolOutc
 // Guard, and permission checks. Permission must complete before any write lease.
 func (a *Agent) resolveToolPolicy(ctx context.Context, turn *turnRuntime, plan *toolCallPlan) (toolOutcome, bool) {
 	if blocked, early := a.applyPlanModeAndProxy(ctx, plan); early {
+		return blocked, true
+	}
+	if blocked, early := a.applyFinalizationExitGate(turn, plan); early {
 		return blocked, true
 	}
 	if blocked, early := a.applyCallContract(plan); early {
