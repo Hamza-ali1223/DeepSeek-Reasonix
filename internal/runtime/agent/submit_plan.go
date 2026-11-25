@@ -70,6 +70,10 @@ func (*SubmitPlanTool) Schema() json.RawMessage {
 // ReadOnly is true: submitting a plan records a proposal and touches nothing.
 func (*SubmitPlanTool) ReadOnly() bool { return true }
 
+// ExitsTurn is true: an accepted plan ends the planning turn, which is why a
+// turn out of research rounds can still deliver one.
+func (*SubmitPlanTool) ExitsTurn() bool { return true }
+
 // ProviderVisible gates on the host having armed a planning turn, mirroring
 // complete_step's phase opt-out: the schema stays constant for cache stability
 // and availability is decided when the call runs.
