@@ -26,6 +26,8 @@ reviewed: 2026-11-22
 2. The submit and inbox boundaries MUST carry planner intent as a typed field. Unsupported values MUST receive a typed refusal. Pasted text MUST NOT create or override that intent.
 3. For an eligible Agent + Planner turn, the host MUST route to the dedicated planner first and validate its structured plan before handoff. A detailed plan SHOULD cover intent, evidence, steps, affected areas, approvals, risks, and verification.
 4. A no-change conclusion MAY end the turn without executor work. If the planner is unavailable or fails, the host MUST report the failure and stop before execution.
+5. A planning turn that spends its research rounds MUST still receive one finalization round. That round MUST refuse research calls and MUST accept exactly one validated `submit_plan` or `conclude_no_changes`.
+6. A finalization round that takes neither exit MUST leave execution stopped. A rejected exit MUST NOT be reported as a delivered plan.
 
 ## Plan approval and receipt recovery
 
