@@ -17,14 +17,14 @@ const (
 	PlannerRoutePlanOnly        PlannerRoute = "plan_only"
 )
 
-// PlannerDepth controls the planning contract and research budget. None is only
-// valid for ExecutorOnly.
+// PlannerDepth controls the planning contract. None is only valid for
+// ExecutorOnly. The research budget is a user setting, not a depth: it is
+// carried on the turn, so a depth may not imply a round count.
 type PlannerDepth string
 
 const (
-	PlannerDepthNone  PlannerDepth = "none"
-	PlannerDepthLight PlannerDepth = "light"
-	PlannerDepthFull  PlannerDepth = "full"
+	PlannerDepthNone PlannerDepth = "none"
+	PlannerDepthFull PlannerDepth = "full"
 )
 
 // PlannerDecision is the deterministic, host-owned routing result for one turn.
@@ -47,7 +47,7 @@ func NormalizePlannerDecision(d PlannerDecision) PlannerDecision {
 		d.Depth = PlannerDepthNone
 		d.MaxResearchRounds = 0
 	case PlannerRoutePlanAndExecute, PlannerRoutePlanForApproval, PlannerRoutePlanOnly:
-		if d.Depth != PlannerDepthLight && d.Depth != PlannerDepthFull {
+		if d.Depth != PlannerDepthFull {
 			d.Depth = PlannerDepthFull
 		}
 		if d.MaxResearchRounds < 0 {

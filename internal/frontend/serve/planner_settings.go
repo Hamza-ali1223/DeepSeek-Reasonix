@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
 	"reasonix/internal/contract/config"
@@ -14,20 +15,33 @@ type plannerSettings struct {
 	Consultation bool     `json:"consultation"`
 	Limit        int      `json:"limit"`
 	Tools        []string `json:"tools"`
+	// ResearchRounds and ConsultationTimeout are the values a session opened
+	// next will use. Both are pointer-free on the way out because a reader never
+	// has to tell "unsaid" from "the default".
+	ResearchRounds            int `json:"researchRounds"`
+	ConsultationTimeoutSecond int `json:"consultationTimeoutSeconds"`
 }
 
+// plannerSettingsEdit reads the same fields on the way in, as pointers: an older
+// client that does not send one MUST leave the saved value alone rather than
+// reset it to a zero the user never chose.
 type plannerSettingsEdit struct {
-	Consultation *bool     `json:"consultation"`
-	Limit        int       `json:"limit"`
-	Tools        *[]string `json:"tools"`
+	Consultation              *bool     `json:"consultation"`
+	Limit                     int       `json:"limit"`
+	Tools                     *[]string `json:"tools"`
+	ResearchRounds            *int      `json:"researchRounds"`
+	ConsultationTimeoutSecond *int      `json:"consultationTimeoutSeconds"`
 }
 
 func (s *Server) plannerSettings(w http.ResponseWriter, _ *http.Request) {
-	agent := config.LoadForEdit(config.UserConfigPath()).Agent
+	cfg := config.LoadForEdit(config.UserConfigPath())
+	agent := cfg.Agent
 	writeJSON(w, plannerSettings{
-		Consultation: agent.PlannerConsultation,
-		Limit:        min(max(agent.PlannerConsultationLimit, 1), 8),
-		Tools:        append([]string{}, agent.PlannerTools...),
+		Consultation:              agent.PlannerConsultation,
+		Limit:                     min(max(agent.PlannerConsultationLimit, 1), config.MaxPlannerConsultationLimit),
+		Tools:                     append([]string{}, agent.PlannerTools...),
+		ResearchRounds:            cfg.PlannerResearchRounds(),
+		ConsultationTimeoutSecond: cfg.ConsultationTimeout(),
 	})
 }
 
@@ -41,8 +55,23 @@ func (s *Server) savePlannerSettings(w http.ResponseWriter, r *http.Request) {
 		badBody(w)
 		return
 	}
-	if edit.Consultation == nil || edit.Limit < 1 || edit.Limit > 8 {
-		refuse(w, http.StatusBadRequest, "planner_settings.invalid", "consultation is required and limit must be between 1 and 8", nil)
+	if edit.Consultation == nil || edit.Limit < 1 || edit.Limit > config.MaxPlannerConsultationLimit {
+		refuse(w, http.StatusBadRequest, "planner_settings.invalid",
+			"consultation is required and limit must be between 1 and "+strconv.Itoa(config.MaxPlannerConsultationLimit), nil)
+		return
+	}
+	if edit.ResearchRounds != nil &&
+		(*edit.ResearchRounds < config.MinPlannerResearchRounds || *edit.ResearchRounds > config.MaxPlannerResearchRounds) {
+		refuse(w, http.StatusBadRequest, "planner_settings.invalid_research_rounds",
+			"research rounds must be between "+strconv.Itoa(config.MinPlannerResearchRounds)+" and "+strconv.Itoa(config.MaxPlannerResearchRounds),
+			map[string]any{"min": config.MinPlannerResearchRounds, "max": config.MaxPlannerResearchRounds})
+		return
+	}
+	if edit.ConsultationTimeoutSecond != nil &&
+		(*edit.ConsultationTimeoutSecond < config.MinConsultationTimeoutSeconds || *edit.ConsultationTimeoutSecond > config.MaxConsultationTimeoutSeconds) {
+		refuse(w, http.StatusBadRequest, "planner_settings.invalid_consultation_timeout",
+			"the consultation timeout must be between "+strconv.Itoa(config.MinConsultationTimeoutSeconds)+" and "+strconv.Itoa(config.MaxConsultationTimeoutSeconds)+" seconds",
+			map[string]any{"min": config.MinConsultationTimeoutSeconds, "max": config.MaxConsultationTimeoutSeconds})
 		return
 	}
 	if edit.Tools != nil {
@@ -66,6 +95,12 @@ func (s *Server) savePlannerSettings(w http.ResponseWriter, r *http.Request) {
 	cfg := config.LoadForEdit(path)
 	cfg.Agent.PlannerConsultation = *edit.Consultation
 	cfg.Agent.PlannerConsultationLimit = edit.Limit
+	if edit.ResearchRounds != nil {
+		cfg.Agent.PlannerResearchRounds = *edit.ResearchRounds
+	}
+	if edit.ConsultationTimeoutSecond != nil {
+		cfg.Agent.PlannerConsultationTimeoutSeconds = *edit.ConsultationTimeoutSecond
+	}
 	if edit.Tools != nil {
 		cfg.Agent.PlannerTools = slices.Clone(*edit.Tools)
 	}

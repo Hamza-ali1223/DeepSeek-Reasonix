@@ -589,8 +589,26 @@ func (a *Agent) handleToolRound(ctx context.Context, state *turnRuntime, step in
 	if state.runMaxSteps > 0 && step+1 >= state.runMaxSteps {
 		a.armFinalizationRound(state, landCause{kind: "max_steps", exit: hasStructuredExit(ctx), detail: fmt.Sprintf(
 			"budget (%s=%d) exhausted: one grace round to finalize", state.runMaxStepsKey, state.runMaxSteps)})
+		return true, nil
 	}
+	a.noteResearchMilestone(ctx, state, step)
 	return true, nil
+}
+
+// noteResearchMilestone tells a planning turn how many rounds it has left at the
+// one point that changes what it should do next: the round that leaves the
+// reserve. It appends at the tail rather than rewriting the opening block, so
+// the prefix stays byte-stable and the planner is not asked to count its own
+// transcript. A turn with no structured exit has nothing to pace and is skipped.
+func (a *Agent) noteResearchMilestone(ctx context.Context, state *turnRuntime, step int) {
+	if state.graceRound || !hasStructuredExit(ctx) || state.runMaxSteps < 3 {
+		return
+	}
+	if remaining := state.runMaxSteps - (step + 1); remaining == 2 {
+		a.NoteHostFact(fmt.Sprintf(
+			"research_rounds_remaining: 2. This is the round the turn asked you to finish by. Finalize now if the evidence is enough; otherwise use the remaining rounds for the most important open question.",
+		))
+	}
 }
 
 func (a *Agent) pairUnexecutedGraceCalls(calls []provider.ToolCall, msg string) {

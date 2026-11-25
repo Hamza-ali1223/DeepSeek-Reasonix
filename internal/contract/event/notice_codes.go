@@ -7,13 +7,16 @@ package event
 // wording edits in Go no longer silently break localization. Values are
 // wire-stable: never rename or reuse one once shipped.
 const (
-	NoticeCodeSessionTreeChanged                                = "session_tree_changed"
-	NoticeCodeCheckpointRecordingFailed                         = "checkpoint_recording_failed"
-	NoticeCodeTurnIdentityMismatch                              = "turn_identity_mismatch"
-	NoticeCodePlanAutoApproved                                  = "plan_auto_approved"
-	NoticeCodeEmptyFinal                                        = "empty_final"
-	NoticeCodeExecutorHandoff                                   = "executor_handoff"
-	NoticeCodeToolBudget                                        = "tool_budget"
+	NoticeCodeSessionTreeChanged        = "session_tree_changed"
+	NoticeCodeCheckpointRecordingFailed = "checkpoint_recording_failed"
+	NoticeCodeTurnIdentityMismatch      = "turn_identity_mismatch"
+	NoticeCodePlanAutoApproved          = "plan_auto_approved"
+	NoticeCodeEmptyFinal                = "empty_final"
+	NoticeCodeExecutorHandoff           = "executor_handoff"
+	NoticeCodeToolBudget                = "tool_budget"
+	// A planning turn that ended with no validated plan, as distinct from one
+	// that reached its cap with a finalization reply still available.
+	NoticeCodePlannerNoPlan                                     = "planner_no_plan"
 	NoticeCodePromptQueued                                      = "prompt_queued"
 	NoticeCodeLoopGuard                                         = "loop_guard"
 	NoticeCodePerseverationLoop                                 = "perseveration_loop"

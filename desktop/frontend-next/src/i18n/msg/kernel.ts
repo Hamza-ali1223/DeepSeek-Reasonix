@@ -536,6 +536,8 @@ export const KERNEL: Messages = {
   "kernel.the_pending_queues_contents_could": { zh: "待送达的正文读不出来，队列内容未知，已暂停等待检查", en: "The pending queue's contents could not be read, so they are unknown and the queue is paused for inspection" },
   "kernel.the_persona_text_is_over": { zh: "人设内容超出长度上限，未做任何修改：{detail}", en: "The persona text is over the length limit; nothing was changed: {detail}" },
   "kernel.the_plan_approval_setting_was": { zh: "计划批准设置未能保存：{detail}", en: "The plan approval setting was not saved: {detail}" },
+  "kernel.the_consultation_timeout_must_be": { zh: "咨询超时需要在 {min}–{max} 秒之间", en: "The consultation timeout must be between {min} and {max} seconds" },
+  "kernel.the_research_round_count_must": { zh: "调研轮数需要在 {min}–{max} 之间", en: "The research round count must be between {min} and {max}" },
   "kernel.the_planner_settings_were_not": { zh: "规划设置未能保存：{detail}", en: "The planner settings were not saved: {detail}" },
   "kernel.the_planner_tool_list_holds": { zh: "规划工具列表最多 128 项", en: "The planner tool list holds at most 128 entries" },
   "kernel.the_plugin_list_could_not": { zh: "无法读取插件清单：{detail}", en: "The plugin list could not be read: {detail}" },

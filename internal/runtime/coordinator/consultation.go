@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"reasonix/internal/contract/config"
 	"reasonix/internal/contract/event"
 	"reasonix/internal/contract/provider"
 	"reasonix/internal/contract/tool"
@@ -16,6 +17,11 @@ import (
 type consultationTurnKey struct{}
 type consultationTurn struct{ used int }
 
+// defaultConsultationTimeout bounds one consultation when no setting says
+// otherwise. A consultation runs a second model inside a live turn, so the
+// wait is always bounded.
+const defaultConsultationTimeout = 90 * time.Second
+
 // SetConsultationLimit sets the host-owned per-executor-turn call limit.
 func (c *Coordinator) SetConsultationLimit(limit int) {
 	if c == nil {
@@ -24,10 +30,22 @@ func (c *Coordinator) SetConsultationLimit(limit int) {
 	if limit < 1 {
 		limit = 1
 	}
-	if limit > 8 {
-		limit = 8
+	if limit > config.MaxPlannerConsultationLimit {
+		limit = config.MaxPlannerConsultationLimit
 	}
 	c.consultLimit = limit
+}
+
+// SetConsultationTimeout sets how long one consultation may run. A
+// non-positive duration keeps the default, so a blank setting cannot ask for an
+// unbounded wait.
+func (c *Coordinator) SetConsultationTimeout(d time.Duration) {
+	if c == nil || d <= 0 {
+		return
+	}
+	c.consultMu.Lock()
+	defer c.consultMu.Unlock()
+	c.consultTimeout = d
 }
 
 // Consult resumes the existing planner agent and session from the active
@@ -48,7 +66,7 @@ func (c *Coordinator) Consult(ctx context.Context, question, evidence string) (s
 		return "", consultationFailure(ErrConsultationLimit, "planner.consultation_limit", "The host consultation limit for this executor turn is exhausted.")
 	}
 	state.used++
-	consultCtx, cancel := context.WithTimeout(ctx, 90*time.Second)
+	consultCtx, cancel := context.WithTimeout(ctx, c.consultTimeout)
 	defer cancel()
 	consultCtx = agent.WithHostTurnBoundary(tool.WithoutGoalTurnRecorder(consultCtx), agent.HostTurnBoundary{HostAuthored: true})
 	consultCtx = agent.WithRawUserInput(agent.WithUserImages(consultCtx, nil), question)

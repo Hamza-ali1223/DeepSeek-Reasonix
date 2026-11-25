@@ -221,7 +221,7 @@ func TestCoordinatorSkipsPlannerForTrivialTurn(t *testing.T) {
 	}
 }
 
-func TestCoordinatorStructuredPolicyUsesStableDepthMetadata(t *testing.T) {
+func TestCoordinatorStructuredPolicyUsesStableTurnMetadata(t *testing.T) {
 	planner := &mockProvider{name: "planner", streams: [][]provider.Chunk{
 		{{Type: provider.ChunkText, Text: "Light plan."}, {Type: provider.ChunkDone}},
 		{{Type: provider.ChunkText, Text: "Full plan."}, {Type: provider.ChunkDone}},
@@ -233,13 +233,13 @@ func TestCoordinatorStructuredPolicyUsesStableDepthMetadata(t *testing.T) {
 	policy := func(_ context.Context, input string) agent.PlannerDecision {
 		if strings.Contains(input, "light") {
 			return agent.PlannerDecision{
-				Route: agent.PlannerRoutePlanAndExecute, Depth: agent.PlannerDepthLight,
-				Reason: "test_light", MaxResearchRounds: 2,
+				Route: agent.PlannerRoutePlanAndExecute, Depth: agent.PlannerDepthFull,
+				Reason: "test_short", MaxResearchRounds: 2,
 			}
 		}
 		return agent.PlannerDecision{
 			Route: agent.PlannerRoutePlanAndExecute, Depth: agent.PlannerDepthFull,
-			Reason: "test_full", MaxResearchRounds: 6,
+			Reason: "test_long", MaxResearchRounds: 6,
 		}
 	}
 	executor := agent.New(exec, tool.NewRegistry(), sessionstore.NewSession("exec-sys"), agent.Options{}, event.Discard)
@@ -255,11 +255,17 @@ func TestCoordinatorStructuredPolicyUsesStableDepthMetadata(t *testing.T) {
 		t.Fatalf("full Run: %v", err)
 	}
 
-	if got := lastUser(planner.requests[0]); !strings.Contains(got, "depth: light") || !strings.Contains(got, "route: plan_and_execute") {
-		t.Fatalf("light planner input missing route metadata: %q", got)
+	if got := lastUser(planner.requests[0]); !strings.Contains(got, "max_research_rounds: 2") || !strings.Contains(got, "route: plan_and_execute") {
+		t.Fatalf("short-budget planner input missing turn metadata: %q", got)
 	}
-	if got := lastUser(planner.requests[1]); !strings.Contains(got, "depth: full") || !strings.Contains(got, "route: plan_and_execute") {
-		t.Fatalf("full planner input missing route metadata: %q", got)
+	if got := lastUser(planner.requests[0]); !strings.Contains(got, "this cap carries no reserve") {
+		t.Fatalf("a cap below three must not promise a reserve: %q", got)
+	}
+	if got := lastUser(planner.requests[1]); !strings.Contains(got, "max_research_rounds: 6") || !strings.Contains(got, "aim_by_research_round: 4") {
+		t.Fatalf("long-budget planner input missing turn metadata: %q", got)
+	}
+	if got := lastUser(planner.requests[1]); strings.Contains(got, "depth:") {
+		t.Fatalf("depth must not reach the planner, it carries no budget: %q", got)
 	}
 	for i, req := range planner.requests {
 		if len(req.Messages) == 0 || req.Messages[0].Role != provider.RoleSystem || req.Messages[0].Content != "stable planner system" {
@@ -273,13 +279,12 @@ func TestCoordinatorStructuredPolicyUsesStableDepthMetadata(t *testing.T) {
 		}
 	}
 	if len(handoffs) != 2 {
-		t.Fatalf("executor handoffs = %d, want one light and one full handoff", len(handoffs))
+		t.Fatalf("executor handoffs = %d, want one per planning turn", len(handoffs))
 	}
-	if !strings.Contains(handoffs[0], "Planning depth: light") {
-		t.Fatalf("light handoff missing depth: %q", handoffs[0])
-	}
-	if !strings.Contains(handoffs[1], "Planning depth: full") {
-		t.Fatalf("full handoff missing depth: %q", handoffs[1])
+	for i, got := range handoffs {
+		if !strings.Contains(got, "Planning depth: full") {
+			t.Fatalf("handoff %d missing depth: %q", i, got)
+		}
 	}
 }
 
@@ -716,7 +721,7 @@ func TestCoordinatorPlannerDepthAppliesPerTurnResearchBudget(t *testing.T) {
 	parentReg.Add(coordinatorTestTool{name: "read_file", readOnly: true, output: "ok"})
 	policy := func(context.Context, string) agent.PlannerDecision {
 		return agent.PlannerDecision{
-			Route: agent.PlannerRoutePlanAndExecute, Depth: agent.PlannerDepthLight,
+			Route: agent.PlannerRoutePlanAndExecute, Depth: agent.PlannerDepthFull,
 			Reason: "bounded_work", MaxResearchRounds: 2,
 		}
 	}
@@ -1225,10 +1230,9 @@ func TestDefaultPlannerPromptTeachesStructuredExitsOnly(t *testing.T) {
 	}
 }
 
-func TestDefaultPlannerPromptDefinesLightAndFullEvidenceContracts(t *testing.T) {
+func TestDefaultPlannerPromptDefinesTheEvidenceAndBudgetContract(t *testing.T) {
 	for _, want := range []string{
-		"depth=light",
-		"depth=full",
+		"research budget",
 		"submit_plan",
 		"assumptions",
 	} {

@@ -27,7 +27,7 @@ func TestPlanReceiptWithoutDiskMarker(t *testing.T) {
 		toolCallTurn("submit-1", "submit_plan", `{"objective":"implement the next feature","steps":[{"title":"Implement the feature"}]}`),
 		textTurn("plan submitted"),
 	}}
-	coord := coordinator.NewCoordinatorWithPlannerPolicy(planner, sessionstore.NewSession("planner system"), nil, agent.PlannerToolRegistry(tool.NewRegistry(), nil, nil), agent.Options{}, exec, 0, event.Discard, NewPlannerPolicy())
+	coord := coordinator.NewCoordinatorWithPlannerPolicy(planner, sessionstore.NewSession("planner system"), nil, agent.PlannerToolRegistry(tool.NewRegistry(), nil, nil), agent.Options{}, exec, 0, event.Discard, NewPlannerPolicy(0))
 	cards := make(chan string, 1)
 	started := make(chan int, 1)
 	mismatches := make(chan string, 1)

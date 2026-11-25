@@ -32,6 +32,8 @@ const SAID: Record<string, string> = {
   "present_files.no_enabled": "kernel.the_request_did_not_say_3",
   "planner_settings.editing_disabled": "kernel.this_server_does_not_allow_4",
   "planner_settings.invalid": "kernel.the_consultation_setting_must",
+  "planner_settings.invalid_consultation_timeout": "kernel.the_consultation_timeout_must_be",
+  "planner_settings.invalid_research_rounds": "kernel.the_research_round_count_must",
   "planner_settings.invalid_tool": "kernel.tool_must_be_a_unique_read",
   "planner_settings.save_failed": "kernel.the_planner_settings_were_not",
   "planner_settings.too_many_tools": "kernel.the_planner_tool_list_holds",
