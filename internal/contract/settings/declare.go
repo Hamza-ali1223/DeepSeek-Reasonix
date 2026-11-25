@@ -106,6 +106,8 @@ var table = []Entry{
 	{ID: "agent.planner_model", Class: Preference, Effect: OnOpen},
 	{ID: "agent.planner_consultation", Class: Preference, Effect: OnOpen},
 	{ID: "agent.planner_consultation_limit", Class: Preference, Effect: OnOpen},
+	{ID: "agent.planner_consultation_timeout_seconds", Class: Preference, Effect: OnOpen},
+	{ID: "agent.planner_research_rounds", Class: Preference, Effect: OnOpen},
 	{ID: "agent.planner_tools", Class: Preference, Effect: OnOpen},
 	{ID: "agent.title_model", Class: Preference, Effect: OnOpen},
 	{ID: "agent.role_efforts", Class: Preference, Effect: OnOpen},

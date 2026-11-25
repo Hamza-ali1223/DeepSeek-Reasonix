@@ -21,6 +21,10 @@ belongs in this folder, so the shared tree stays portable back upstream.
 | `FORK_STATE.md` | What this fork ships, what is broken on it, what work is open |
 | `MAINTAINER.md` | How its maintainer decides, what is refused, what a review looks for |
 | `agent+planner-mode-spec.md` | What explicit planner routing, consultation, and role settings must do |
+| `PLANNER_RESEARCH_BUDGET_CONTRACT.md` | What bounds a planning turn's research, what the planner is told, and what its last round may still do |
+| `PLANNER_CONSULTATION_LIMITS_CONTRACT.md` | What bounds one consultation and one turn's consultation count |
+| `PLANNER_APPROVAL_MODE_SWITCH_CONTRACT.md` | What the work mode becomes once a plan is accepted, and when the card is always shown |
+| `PLANNER_CACHE_HIT_CONTRACT.md` | What Studio's cache-hit reading counts, and what a low reading does not establish |
 
 ## Rules a new file here is most likely to break
 

@@ -31,9 +31,19 @@ func renderAgentDelegation(b *strings.Builder, c *Config) {
 		b.WriteString("# planner_consultation = true   # allow the executor to consult the planner during a turn\n")
 	}
 	if c.Agent.PlannerConsultationLimit > 1 {
-		fmt.Fprintf(b, "planner_consultation_limit = %d   # maximum consultations per executor turn (1-8)\n", c.Agent.PlannerConsultationLimit)
+		fmt.Fprintf(b, "planner_consultation_limit = %d   # maximum consultations per executor turn (1-%d)\n", c.Agent.PlannerConsultationLimit, MaxPlannerConsultationLimit)
 	} else {
-		b.WriteString("# planner_consultation_limit = 1   # maximum consultations per executor turn (1-8)\n")
+		fmt.Fprintf(b, "# planner_consultation_limit = 1   # maximum consultations per executor turn (1-%d)\n", MaxPlannerConsultationLimit)
+	}
+	if c.Agent.PlannerConsultationTimeoutSeconds != DefaultConsultationTimeoutSeconds {
+		fmt.Fprintf(b, "planner_consultation_timeout_seconds = %d   # how long one consultation may run, in seconds (%d-%d)\n", c.Agent.PlannerConsultationTimeoutSeconds, MinConsultationTimeoutSeconds, MaxConsultationTimeoutSeconds)
+	} else {
+		fmt.Fprintf(b, "# planner_consultation_timeout_seconds = %d   # how long one consultation may run, in seconds (%d-%d)\n", DefaultConsultationTimeoutSeconds, MinConsultationTimeoutSeconds, MaxConsultationTimeoutSeconds)
+	}
+	if c.Agent.PlannerResearchRounds != DefaultPlannerResearchRounds {
+		fmt.Fprintf(b, "planner_research_rounds = %d   # research rounds one planning turn may use (%d-%d)\n", c.Agent.PlannerResearchRounds, MinPlannerResearchRounds, MaxPlannerResearchRounds)
+	} else {
+		fmt.Fprintf(b, "# planner_research_rounds = %d   # research rounds one planning turn may use (%d-%d)\n", DefaultPlannerResearchRounds, MinPlannerResearchRounds, MaxPlannerResearchRounds)
 	}
 	if len(c.Agent.PlannerTools) > 0 {
 		fmt.Fprintf(b, "planner_tools = %s   # optional allowlist of read-only planner tools and MCP capability IDs\n", renderStringArray(c.Agent.PlannerTools))
