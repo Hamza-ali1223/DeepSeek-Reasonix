@@ -169,7 +169,9 @@ export class MockBoundary extends MockShell {
   }
 
   private plans: PlanApprovalSettings = { auto: false, path: "/Users/you/.reasonix/config.toml" };
-  private planner: import("./boundary").PlannerSettings = { consultation: false, limit: 1, tools: [] };
+  private planner: import("./boundary").PlannerSettings = {
+    consultation: false, limit: 1, tools: [], researchRounds: 12, consultationTimeoutSeconds: 90,
+  };
 
   async plannerSettings() {
     return { ...this.planner };

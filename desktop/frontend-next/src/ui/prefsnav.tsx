@@ -188,7 +188,9 @@ export const SETTINGS: SettingEntry[] = [
   // the running session keeps what it started with.
   { section: "session", anchor: "planner-consultation", title: "settings.planner_consultation", scope: "machine", apply: "on-open", keywords: ["planner", "规划", "咨询", "consultation", "协作", "两个模型", "双模型"] },
   { section: "session", anchor: "planner-consultation-limit", title: "settings.planner_consultation_limit", scope: "machine", apply: "on-open", keywords: ["planner", "规划", "咨询", "上限", "次数", "consultation limit"] },
+  { section: "session", anchor: "planner-consultation-timeout", title: "settings.planner_consultation_timeout", scope: "machine", apply: "on-open", keywords: ["planner", "规划", "咨询", "超时", "等待", "timeout"] },
   { section: "session", anchor: "planner-tools", title: "settings.planner_tools", scope: "machine", apply: "on-open", keywords: ["planner", "规划", "研究", "工具", "工具集", "allowlist", "mcp", "research tools"] },
+  { section: "session", anchor: "planner-research-rounds", title: "settings.planner_research_rounds", scope: "machine", apply: "on-open", keywords: ["planner", "规划", "调研", "轮数", "预算", "research rounds"] },
   // Written to the user file only, and read by the running turn at its next round.
   { section: "session", anchor: "ask-timeout", title: "safety.question_wait_time", scope: "machine", apply: "immediate", keywords: ["ask", "跳过", "无人回答", "长任务", "超时", "自动继续"] },
   { section: "session", anchor: "turn-narration", title: "settings.narration_between_tool_calls", scope: "machine", apply: "immediate", keywords: ["叙述", "总结", "小轮", "工具之间", "详细", "简短", "思路", "监控", "narration"] },
@@ -293,7 +295,7 @@ export const PAGE_CARDS: readonly PageCard[] = [
   ["model", "models.services", ["providers", "provider-health"]],
   ["model", "models.uses_and_context", ["model", "context"]],
   ["session", "settings.persona_and_presets", ["persona", "agent-presets"]],
-  ["session", "settings.plans_and_questions", ["plan-approval", "ask-timeout", "turn-narration", "progress-watch", "planner-consultation", "planner-consultation-limit", "planner-tools"]],
+  ["session", "settings.plans_and_questions", ["plan-approval", "ask-timeout", "turn-narration", "progress-watch", "planner-research-rounds", "planner-tools", "planner-consultation", "planner-consultation-limit", "planner-consultation-timeout"]],
   ["session", "settings.collaboration", ["session-ref", "subagent-claims", "peers"]],
   ["session", "settings.automation", ["hooks", "scheduled-runs"]],
   ["tools", "settings.approval", ["approval", "rules", "external-origin", "tool-list"]],

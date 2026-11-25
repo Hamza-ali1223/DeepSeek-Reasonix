@@ -130,6 +130,8 @@ export interface PlannerSettings {
   consultation: boolean;
   limit: number;
   tools: string[];
+  researchRounds: number;
+  consultationTimeoutSeconds: number;
 }
 
 export interface PlanApprovalSettings {
