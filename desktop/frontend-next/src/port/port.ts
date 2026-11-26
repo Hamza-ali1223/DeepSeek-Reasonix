@@ -307,8 +307,8 @@ export interface AgentPort extends RunningWorkPort, MemoryHoldPort, WorkspacePre
   saveSubagentClaims(optimistic: boolean): Promise<SubagentClaimsSettings>;
   planApproval(): Promise<PlanApprovalSettings>;
   savePlanApproval(auto: boolean): Promise<PlanApprovalSettings>;
-  plannerSettings(): Promise<import("./boundary").PlannerSettings>;
-  savePlannerSettings(settings: import("./boundary").PlannerSettings): Promise<import("./boundary").PlannerSettings>;
+  plannerSettings(): Promise<import("./boundary").PlannerSettingsSnapshot>;
+  savePlannerSettings(settings: import("./boundary").PlannerSettings): Promise<import("./boundary").PlannerSettingsSnapshot>;
   defaultMode(): Promise<DefaultModeSettings>;
   saveDefaultMode(plan: boolean): Promise<DefaultModeSettings>;
   toolSettings(): Promise<ToolSettings>;

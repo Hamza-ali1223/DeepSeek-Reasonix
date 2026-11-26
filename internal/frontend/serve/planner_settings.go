@@ -12,9 +12,11 @@ import (
 )
 
 type plannerSettings struct {
-	Consultation bool     `json:"consultation"`
-	Limit        int      `json:"limit"`
-	Tools        []string `json:"tools"`
+	Consultation  bool     `json:"consultation"`
+	Limit         int      `json:"limit"`
+	Tools         []string `json:"tools"`
+	ModelRef      string   `json:"modelRef,omitempty"`
+	ResearchTools []string `json:"researchTools"`
 	// ResearchRounds and ConsultationTimeout are the values a session opened
 	// next will use. Both are pointer-free on the way out because a reader never
 	// has to tell "unsaid" from "the default".
@@ -36,10 +38,13 @@ type plannerSettingsEdit struct {
 func (s *Server) plannerSettings(w http.ResponseWriter, _ *http.Request) {
 	cfg := config.LoadForEdit(config.UserConfigPath())
 	agent := cfg.Agent
+	model, researchTools := s.ctl().PlannerSettingsContext()
 	writeJSON(w, plannerSettings{
 		Consultation:              agent.PlannerConsultation,
 		Limit:                     min(max(agent.PlannerConsultationLimit, 1), config.MaxPlannerConsultationLimit),
 		Tools:                     append([]string{}, agent.PlannerTools...),
+		ModelRef:                  model,
+		ResearchTools:             append([]string{}, researchTools...),
 		ResearchRounds:            cfg.PlannerResearchRounds(),
 		ConsultationTimeoutSecond: cfg.ConsultationTimeout(),
 	})

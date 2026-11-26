@@ -20,6 +20,7 @@ import { firstPage, pageOf } from "./settingPages";
 import { Group, SCOPE_SAID } from "./Group";
 import { CommonSettings } from "./CommonSettings";
 import { AgentSettings } from "./AgentSettings";
+import { PlannerSettings } from "./PlannerSettings";
 import { ChatDisplaySettings } from "./ChatDisplaySettings";
 import { OpsSettings } from "./OpsSettings";
 import { AccountSettings } from "./AccountSettings";
@@ -284,6 +285,7 @@ export function Settings({ hub, onError, port, networkPort, localWorkspacePort, 
     display: "",
     controls: "",
     session: status?.plan ? t("settings.plan_mode") : preset,
+    planner: "",
     persona: "",
     model: status?.modelRef?.split("/").pop() ?? "—",
     providers: models.length ? t("settings.n_services", { n: groupVendors(models).length }) : "",
@@ -433,6 +435,7 @@ export function Settings({ hub, onError, port, networkPort, localWorkspacePort, 
             </div>
           )}
           {at === "session" && <AgentSettings port={port} hub={hub} persona={landed === "persona"} onPersona={() => go("session", "persona")} onChanged={onChanged} />}
+          {at === "planner" && <PlannerSettings port={port} models={models} />}
 
           {at === "model" && (
             <ModelSettings port={port} onChanged={onChanged} onFailed={setFailed}

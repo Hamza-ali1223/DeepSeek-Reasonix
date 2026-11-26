@@ -10,6 +10,7 @@ afterEach(cleanup);
 
 it("saves the research rounds, the consultation switch, its limit, and the timeout together", async () => {
   const port = new MockPort();
+  vi.spyOn(port, "mcp").mockResolvedValue({ servers: [], live: true, scope: { root: "/workspace", name: "workspace", key: "workspace", repo: false, overrides: 0 } });
   const save = vi.spyOn(port, "savePlannerSettings");
   render(<PlannerSettings port={port} />);
   const user = userEvent.setup();
@@ -26,7 +27,8 @@ it("saves the research rounds, the consultation switch, its limit, and the timeo
   await user.clear(timeout);
   await user.type(timeout, "240");
 
-  await user.type(screen.getByRole("textbox", { name: "规划模型研究工具" }), "read_file{Enter}mcp-tool:docs/search");
+  await user.click(screen.getByRole("radio", { name: "自定义" }));
+  await user.click(screen.getByRole("checkbox", { name: "grep" }));
 
   // One save writes every planner value: the footer is the only control that
   // reaches the kernel, so a user never has to guess which field committed.
@@ -36,7 +38,7 @@ it("saves the research rounds, the consultation switch, its limit, and the timeo
     limit: 2,
     researchRounds: 8,
     consultationTimeoutSeconds: 240,
-    tools: ["read_file", "mcp-tool:docs/search"],
+    tools: ["read_file"],
   }));
 });
 

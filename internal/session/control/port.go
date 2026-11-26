@@ -317,6 +317,7 @@ type RuntimeSettings interface {
 	SaveWriteLeaseSettings(optimistic *bool, maxWaitMinutes *int) error
 	PlanApprovalSettings() PlanApprovalSettings
 	SavePlanApprovalSettings(auto bool) error
+	PlannerSettingsContext() (string, []string)
 	DefaultModeSettings() DefaultModeSettings
 	SaveDefaultModeSettings(plan bool) error
 	ToolSettings() ToolSettings

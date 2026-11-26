@@ -153,7 +153,7 @@ var mirroredWireTypesHead = []wireMirror{
 	{"internal/session/control/subagent_claims.go", "SubagentClaimsSettings", tsBoundaryFile, "SubagentClaimsSettings"},
 	{"internal/session/control/write_lease_settings.go", "WriteLeaseSettings", tsBoundaryFile, "WriteLeaseSettings"},
 	{"internal/session/control/plan_approval_settings.go", "PlanApprovalSettings", tsBoundaryFile, "PlanApprovalSettings"},
-	{"internal/frontend/serve/planner_settings.go", "plannerSettings", tsBoundaryFile, "PlannerSettings"},
+	{"internal/frontend/serve/planner_settings.go", "plannerSettings", tsBoundaryFile, "PlannerSettingsSnapshot"},
 	{"internal/session/control/default_mode_settings.go", "DefaultModeSettings", tsBoundaryFile, "DefaultModeSettings"},
 	{"internal/session/control/present_files_settings.go", "PresentFilesSettings", tsBoundaryFile, "PresentFilesSettings"},
 	{"internal/session/control/tool_settings.go", "ToolSettings", tsBoundaryFile, "ToolSettings"},

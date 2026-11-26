@@ -174,12 +174,12 @@ export class MockBoundary extends MockShell {
   };
 
   async plannerSettings() {
-    return { ...this.planner };
+    return { ...this.planner, modelRef: "deepseek/deepseek-v4-pro", researchTools: ["grep", "read_file"] };
   }
 
   async savePlannerSettings(settings: import("./boundary").PlannerSettings) {
     this.planner = { ...settings };
-    return { ...this.planner };
+    return this.plannerSettings();
   }
 
   async planApproval(): Promise<PlanApprovalSettings> {
