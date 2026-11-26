@@ -329,7 +329,6 @@ func (c *Coordinator) SetPlannerPlanApprover(g agent.PlannerPlanApprover) {
 // Run plans with the planner model, then hands the plan to the executor.
 func (c *Coordinator) Run(ctx context.Context, input string) error {
 	ctx = c.executor.PrepareRootTaskBudget(ctx)
-	ctx = context.WithValue(ctx, consultationTurnKey{}, &consultationTurn{})
 	// A host that announced this turn owns its boundary; opening a second one
 	// here would make planner work and executor work two turns to every sink
 	// that resets on a start.
@@ -347,6 +346,10 @@ func (c *Coordinator) Run(ctx context.Context, input string) error {
 	if c.plannerPolicy != nil {
 		decision = agent.NormalizePlannerDecision(c.plannerPolicy(ctx, input))
 	}
+	ctx = context.WithValue(ctx, consultationTurnKey{}, &consultationTurn{
+		route:     decision.Route,
+		planState: c.executor.PlanState(),
+	})
 	routeDetail := fmt.Sprintf("planner route=%s depth=%s reason=%s", decision.Route, decision.Depth, decision.Reason)
 	if decision.Route == agent.PlannerRouteExecutorOnly {
 		c.sink.Emit(event.Event{Kind: event.Phase, Text: c.executor.ProviderName() + " · executing", Detail: routeDetail, Source: event.UsageSourceExecutor})

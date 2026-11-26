@@ -8,6 +8,7 @@ import (
 
 	"reasonix/internal/contract/config"
 	"reasonix/internal/contract/event"
+	"reasonix/internal/contract/planmode"
 	"reasonix/internal/contract/provider"
 	"reasonix/internal/contract/tool"
 	"reasonix/internal/runtime/agent"
@@ -15,7 +16,11 @@ import (
 )
 
 type consultationTurnKey struct{}
-type consultationTurn struct{ used int }
+type consultationTurn struct {
+	route     agent.PlannerRoute
+	planState planmode.State
+	used      int
+}
 
 // defaultConsultationTimeout bounds one consultation when no setting says
 // otherwise. A consultation runs a second model inside a live turn, so the
@@ -50,8 +55,8 @@ func (c *Coordinator) SetConsultationTimeout(d time.Duration) {
 
 // Consult resumes the existing planner agent and session from the active
 // executor tool call. It never enters Coordinator.Run or starts a new executor
-// turn. A structured plan is validated by submit_plan and requires host
-// approval before it replaces the executor's plan contract.
+// turn. A structured plan is advice on an ordinary Agent turn. In a planning
+// workflow, changes to the executor's plan contract follow its approval policy.
 func (c *Coordinator) Consult(ctx context.Context, question, evidence string) (string, error) {
 	if c == nil || c.plannerAgent == nil || c.executor == nil {
 		return "", consultationFailure(ErrConsultationUnavailable, "planner.consultation_unavailable", "The configured planner is unavailable for consultation.")
@@ -96,6 +101,9 @@ func (c *Coordinator) Consult(ctx context.Context, question, evidence string) (s
 	}
 	if plan, ok := submission.Plan(); ok {
 		current := c.executor.PlanContract()
+		if state.route == agent.PlannerRouteExecutorOnly && !state.planState.Active() && current == nil {
+			return "Planner returned a validated plan for your consideration:\n\n" + plancontract.Render(plan), nil
+		}
 		needsApproval := plan.RequiresApproval || current == nil || plancontract.Compare(*current, plan).NeedsApproval()
 		if current != nil {
 			plan.ID = current.ID
