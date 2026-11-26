@@ -605,9 +605,9 @@ func (a *Agent) noteResearchMilestone(ctx context.Context, state *turnRuntime, s
 		return
 	}
 	if remaining := state.runMaxSteps - (step + 1); remaining == 2 {
-		a.NoteHostFact(fmt.Sprintf(
+		a.NoteHostFact(
 			"research_rounds_remaining: 2. This is the round the turn asked you to finish by. Finalize now if the evidence is enough; otherwise use the remaining rounds for the most important open question.",
-		))
+		)
 	}
 }
 
