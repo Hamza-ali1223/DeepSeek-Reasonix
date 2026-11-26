@@ -99,7 +99,7 @@ The test checks that every registered built-in tool has a documented name, read-
 1. The schema accepts one object with these two fields. Extra properties are disallowed. Related questions MAY share the `question` string. Each accepted call consumes one slot, even when the planner run fails.
 2. `agent.planner_consultation` defaults off. When enabled, the host exposes the tool at session open if a dedicated planner is configured. The default limit is one consultation per executor turn. The user MAY configure 1 through 8.
 3. The tool reuses the existing planner session and runs serially inside the active executor turn. Its read-only flag is `false` because a consultation can propose a revision for the host to apply.
-4. A call returns advice, a host-validated revision, or a failure. When a revision requires approval, the host MUST obtain it before applying the revision. A rejected revision leaves the current plan in effect.
+4. In ordinary Agent mode, a structured plan is validated and returned to the executor as advice. It does not open a plan approval card or install a plan contract. Within a plan workflow, the host MUST obtain any required approval before applying a consulted revision. A rejected revision leaves the current plan in effect.
 5. The planner's research scope and the executor's permissions continue to apply. For routing, settings, and acceptance checks, see the [Agent + Planner spec](fork_docs/agent+planner-mode-spec.md).
 
 | Refusal code | Meaning |

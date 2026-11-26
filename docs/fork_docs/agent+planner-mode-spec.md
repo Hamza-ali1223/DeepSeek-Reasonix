@@ -59,8 +59,9 @@ reviewed: 2026-11-22
 
 1. The executor MAY call [`consult_planner`](../TOOL_CONTRACT.md#conditional-executor-tool-consult_planner) for targeted advice or a plan revision during its active turn. Consultation is available independently of initial Agent + Planner routing.
 2. The coordinator MUST resume the existing planner session and return the result to the executor in the same turn. Calls MUST run serially and count against the host-owned limit, which resets for each executor turn.
-3. The planner MAY use the research tools available to its role while answering. The host MUST validate structured revisions, preserve plan identity and revision order, and enforce approval and permissions before expanded work takes effect.
-4. The executor SHOULD send a focused question and include only the evidence needed to answer it. The executor MUST NOT choose the planner model or claim approval through tool input.
+3. The planner MAY use the research tools available to its role while answering. In ordinary Agent mode, the host MUST return a valid structured plan as advice, without a plan approval card or a plan contract.
+4. Within a planning workflow, the host MUST validate structured revisions, preserve plan identity and revision order, and enforce approval and permissions before expanded work takes effect.
+5. The executor SHOULD send a focused question and include only the evidence needed to answer it. The executor MUST NOT choose the planner model or claim approval through tool input.
 
 ## Studio and acceptance
 
