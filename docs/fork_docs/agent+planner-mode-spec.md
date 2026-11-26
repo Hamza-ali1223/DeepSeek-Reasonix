@@ -31,7 +31,7 @@ reviewed: 2026-11-22
 
 ## Plan approval and receipt recovery
 
-1. The host MUST default to asking the user before executing a valid plan. The user MAY choose automatic plan execution. Tool confirmation, including Allow all, MUST remain independent and retain its hard blocks.
+1. The host MUST show the approval card for the initial Agent + Planner plan. Ordinary Plan MAY use automatic plan execution. Tool confirmation MUST retain its own rules. See the [approval contract](PLANNER_APPROVAL_MODE_SWITCH_CONTRACT.md).
 2. Approval MUST bind to the plan revision the host showed. With plan approval enabled, the host MUST obtain fresh approval before work expands beyond the approved scope.
 3. The host announces the user message's transcript index before the planner runs. A decision receipt records the user's answer. It MUST belong to that turn even when the session has no disk marker, and MUST NOT take the announced index or attach to a previous turn.
 4. If approval arrives before the message lands, the host MUST hold the receipt separately until its own turn can carry it. The receipt is local metadata and MUST stay out of provider requests.
