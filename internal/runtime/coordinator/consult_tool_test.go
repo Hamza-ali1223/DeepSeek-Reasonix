@@ -43,12 +43,18 @@ func TestCoordinatorConsultationResumesPlannerSessionWithinExecutorTurn(t *testi
 	executor := agent.New(exec, reg, sessionstore.NewSession("executor"), agent.Options{}, event.Discard)
 	plannerSess := sessionstore.NewSession("planner")
 	coord := NewCoordinator(planner, plannerSess, nil, tool.NewRegistry(), agent.Options{}, executor, 0, event.Discard, nil)
+	if strings.Contains(executorToolHandoffContext(executor), ConsultationToolName) {
+		t.Fatal("the handoff advertised a tool absent from the executor")
+	}
 	reg.Add(NewConsultationTool(coord))
 	if err := coord.Run(context.Background(), "fix the issue"); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 	if len(planner.requests) != 2 {
 		t.Fatalf("planner requests = %d, want initial and consultation", len(planner.requests))
+	}
+	if !strings.Contains(lastUser(exec.requests[0]), "ask a focused question with consult_planner") {
+		t.Fatal("enabled consultation is missing from the handoff")
 	}
 	if !strings.Contains(lastUser(planner.requests[1]), "where is the cache key?") || !strings.Contains(lastUser(planner.requests[1]), "agent is blocked") {
 		t.Fatalf("consultation request = %q", lastUser(planner.requests[1]))

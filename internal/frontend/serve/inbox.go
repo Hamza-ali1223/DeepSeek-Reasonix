@@ -108,9 +108,10 @@ func (l chipLine) request(r *http.Request) control.InboxRequest {
 func (s *Server) inboxEnqueue(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		chipLine
-		Intent         string `json:"intent"`
-		IdempotencyKey string `json:"idempotencyKey"`
-		WorkMode       string `json:"workMode"`
+		Intent           string `json:"intent"`
+		IdempotencyKey   string `json:"idempotencyKey"`
+		WorkMode         string `json:"workMode"`
+		PlannerSelection string `json:"plannerSelection"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.empty() {
 		missingField(w, "input")
@@ -123,6 +124,7 @@ func (s *Server) inboxEnqueue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req.WorkMode = workMode
+	req.PlannerSelection = plannerSelection(workMode, body.PlannerSelection)
 	req.Intent = sessioninbox.IntentFollowup
 	if strings.EqualFold(body.Intent, "steer") {
 		req.Intent = sessioninbox.IntentSteer
@@ -135,7 +137,7 @@ func (s *Server) inboxEnqueue(w http.ResponseWriter, r *http.Request) {
 
 // submitChips starts a chip line the way /submit starts a typed one, through
 // the inbox because the envelope is what carries the chips to the turn.
-func (s *Server) submitChips(w http.ResponseWriter, r *http.Request, line chipLine, format string, workMode control.WorkMode) {
+func (s *Server) submitChips(w http.ResponseWriter, r *http.Request, line chipLine, format string, workMode control.WorkMode, selection string) {
 	if s.refuseKeylessTurn(w) {
 		return
 	}
@@ -147,6 +149,7 @@ func (s *Server) submitChips(w http.ResponseWriter, r *http.Request, line chipLi
 	}
 	req := line.request(r)
 	req.Intent, req.Format, req.WorkMode = sessioninbox.IntentFollowup, format, workMode
+	req.PlannerSelection = selection
 	s.enqueueLocked(w, req)
 }
 

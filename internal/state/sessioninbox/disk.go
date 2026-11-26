@@ -376,6 +376,7 @@ func idempotencyRequestHash(env PromptEnvelope) (string, error) {
 		Invocations          []stableInvocation `json:"invocations,omitempty"`
 		Format               string             `json:"format,omitempty"`
 		WorkMode             string             `json:"workMode,omitempty"`
+		PlannerSelection     string             `json:"plannerSelection,omitempty"`
 		Attachments          []string           `json:"attachments,omitempty"`
 		AttachmentIdentities []string           `json:"attachmentIdentities,omitempty"`
 		ExplicitRefs         []string           `json:"explicitRefs,omitempty"`
@@ -388,6 +389,7 @@ func idempotencyRequestHash(env PromptEnvelope) (string, error) {
 		Invocations:          invocations,
 		Format:               env.Format,
 		WorkMode:             env.WorkMode,
+		PlannerSelection:     env.PlannerSelection,
 		Attachments:          env.Attachments,
 		AttachmentIdentities: env.AttachmentIdentities,
 		ExplicitRefs:         env.ExplicitRefs,

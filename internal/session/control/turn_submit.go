@@ -61,9 +61,10 @@ func (c *Controller) SubmitHTTPFrom(input, format string, via *provider.Via) Adm
 
 // SubmitOptions are what a submission asks beyond its text.
 type SubmitOptions struct {
-	Format   string
-	Via      *provider.Via
-	WorkMode WorkMode
+	Format           string
+	Via              *provider.Via
+	WorkMode         WorkMode
+	PlannerSelection string
 	// RefuseUnknownSlash keeps a slash command no registry answers off the
 	// model: the line gets an unknown-command notice and starts no turn.
 	RefuseUnknownSlash bool
@@ -81,7 +82,7 @@ func (c *Controller) SubmitHTTPOptions(input string, opts SubmitOptions) Admissi
 		return turnNoTurn
 	}
 	return c.submitHTTPWithFormat(input, "", turnTags{
-		format: f, via: opts.Via, workMode: opts.WorkMode,
+		format: f, via: opts.Via, workMode: opts.WorkMode, plannerSelection: opts.PlannerSelection,
 		refuseUnknownSlash: opts.RefuseUnknownSlash,
 	})
 }

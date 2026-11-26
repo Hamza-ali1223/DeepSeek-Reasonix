@@ -46,10 +46,10 @@ it("carries Agent + Planner as a distinct submission field for direct and queued
   const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => ({ ok: true, status: 200, text: async () => "", json: async () => ({ itemId: "i1" }) }));
   vi.stubGlobal("fetch", fetchMock);
   const port = new SsePort();
-  await port.submit("build it", undefined, "agent_planner");
-  await port.queueFollowup("build it later", undefined, "agent_planner");
-  expect(JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))).toEqual({ input: "build it", workMode: "agent_planner" });
-  expect(JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body))).toEqual({ input: "build it later", intent: "followup", workMode: "agent_planner" });
+  await port.submit("build it", undefined, "agent_planner", "choice-1");
+  await port.queueFollowup("build it later", undefined, "agent_planner", "choice-1");
+  expect(JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))).toEqual({ input: "build it", workMode: "agent_planner", plannerSelection: "choice-1" });
+  expect(JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body))).toEqual({ input: "build it later", intent: "followup", workMode: "agent_planner", plannerSelection: "choice-1" });
 });
 
 describe("idempotent reads", () => {

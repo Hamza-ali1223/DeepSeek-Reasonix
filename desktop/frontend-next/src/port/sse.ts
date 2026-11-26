@@ -516,14 +516,14 @@ export class SsePort extends SseTerminal implements AgentPort {
     return subscribeStream(this.base, onEvent, onGap, bootstrap, lane);
   }
 
-  submit(text: string, chips?: ChipCall, workMode?: "agent_planner") {
-    return this.postMaybe<Queued>("/submit", { input: text, ...chips, ...(workMode ? { workMode } : {}) });
+  submit(text: string, chips?: ChipCall, workMode?: "agent_planner", plannerSelection?: string) {
+    return this.postMaybe<Queued>("/submit", { input: text, ...chips, workMode, plannerSelection });
   }
   steer(text: string, workMode?: "agent_planner") {
     return this.post0<Queued>("/inbox/items", { input: text, intent: "steer", ...(workMode ? { workMode } : {}) });
   }
-  queueFollowup(text: string, chips?: ChipCall, workMode?: "agent_planner") {
-    return this.post0<Queued>("/inbox/items", { input: text, intent: "followup", ...chips, ...(workMode ? { workMode } : {}) });
+  queueFollowup(text: string, chips?: ChipCall, workMode?: "agent_planner", plannerSelection?: string) {
+    return this.post0<Queued>("/inbox/items", { input: text, intent: "followup", ...chips, workMode, plannerSelection });
   }
   async cancelQueued(itemId: string) {
     await this.del("/inbox/items/" + encodeURIComponent(itemId));

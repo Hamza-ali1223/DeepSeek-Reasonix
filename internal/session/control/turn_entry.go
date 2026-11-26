@@ -80,12 +80,13 @@ func (c *Controller) RunTurnWithRaw(ctx context.Context, input, raw, invokedSkil
 }
 
 // turnTags are what one submission carries into the turn it becomes: its
-// output format, paired device, and explicit work mode. They ride the turn's
+// output format, paired device, and work selection. They ride the turn's
 // context, never a controller slot, so two requests cannot trade them.
 type turnTags struct {
-	format   string
-	via      *provider.Via
-	workMode WorkMode
+	format           string
+	via              *provider.Via
+	workMode         WorkMode
+	plannerSelection string
 	// refuseUnknownSlash answers a slash command nothing resolves with a notice
 	// instead of sending the line to the model as prose.
 	refuseUnknownSlash bool
@@ -99,8 +100,13 @@ func (c *Controller) withTurnTags(ctx context.Context, tags turnTags) context.Co
 	if tags.workMode != WorkModeLegacy {
 		ctx = context.WithValue(ctx, workModeContextKey{}, tags.workMode)
 	}
+	if tags.workMode == WorkModeAgentPlanner && tags.plannerSelection != "" {
+		ctx = context.WithValue(ctx, plannerSelectionKey{}, tags.plannerSelection)
+	}
 	return ctx
 }
+
+type plannerSelectionKey struct{}
 
 func withTurnVia(ctx context.Context, via *provider.Via) context.Context {
 	if via == nil {
@@ -321,9 +327,16 @@ func (p plannerPlanApprover) RunWithPlannerApproval(ctx context.Context, plan st
 	c := p.c
 	steps := PlanTodosJSON(plan)
 	if workModeFromContext(ctx) == WorkModeAgentPlanner {
-		allowed, err := c.planApproved(ctx, steps)
+		allowed, _, err := c.requestApproval(ctx, planApprovalRequest(steps, ""))
 		if err != nil || !allowed {
 			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if turn := c.currentTurnStamp(ctx); turn.id != "" {
+			selection, _ := ctx.Value(plannerSelectionKey{}).(string)
+			c.sink.Emit(event.Event{Kind: event.Phase, Code: "planner.approved", MsgIndex: &turn.start, PlannerSelection: selection})
 		}
 		return p.runApprovedPlannerPlan(ctx, steps, run)
 	}

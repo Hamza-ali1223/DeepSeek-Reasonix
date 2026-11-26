@@ -9,10 +9,17 @@ import (
 
 // submitAs runs a submitted line as the one who sent it: a paired device's
 // line lands as that device's, and the window's as its own.
-func submitAs(ctrl control.SessionAPI, r *http.Request, input, format string, refuseUnknownSlash bool, workMode control.WorkMode) control.Admission {
+func submitAs(ctrl control.SessionAPI, r *http.Request, input, format string, refuseUnknownSlash bool, workMode control.WorkMode, selection string) control.Admission {
 	return ctrl.SubmitHTTPOptions(input, control.SubmitOptions{
-		Format: format, Via: viaOf(r), RefuseUnknownSlash: refuseUnknownSlash, WorkMode: workMode,
+		Format: format, Via: viaOf(r), RefuseUnknownSlash: refuseUnknownSlash, WorkMode: workMode, PlannerSelection: selection,
 	})
+}
+
+func plannerSelection(mode control.WorkMode, selection string) string {
+	if mode == control.WorkModeAgentPlanner && len(selection) <= 64 {
+		return selection
+	}
+	return ""
 }
 
 // approveAs answers a prompt as the one who answered it. The device changes

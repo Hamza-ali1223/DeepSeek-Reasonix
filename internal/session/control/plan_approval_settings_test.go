@@ -15,25 +15,46 @@ import (
 	"reasonix/internal/state/sessionstore"
 )
 
-func TestAgentPlannerAutoApprovalKeepsToolApprovalIndependent(t *testing.T) {
+func TestAgentPlannerRequiresApprovalAndKeepsToolApprovalIndependent(t *testing.T) {
 	r := newPlanRun(t)
 	t.Cleanup(r.c.Close)
 	if err := r.c.SavePlanApprovalSettings(true); err != nil {
 		t.Fatal(err)
 	}
-	deadline, cancel := context.WithTimeout(t.Context(), time.Second)
+	deadline, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	ctx := context.WithValue(deadline, workModeContextKey{}, WorkModeAgentPlanner)
-	started := false
-	err := (plannerPlanApprover{c: r.c}).RunWithPlannerApproval(ctx, "Plan:\n1. Make one change", func(context.Context) error {
-		started = true
-		if r.c.approval.planAutoApprove {
-			t.Error("plan approval enabled tool auto-approval")
+	result := make(chan error, 1)
+	started := make(chan bool, 1)
+	go func() {
+		result <- (plannerPlanApprover{c: r.c}).RunWithPlannerApproval(ctx, "Plan:\n1. Make one change", func(context.Context) error {
+			started <- r.c.approval.planAutoApprove
+			return nil
+		})
+	}()
+	select {
+	case id := <-r.cards:
+		select {
+		case <-started:
+			t.Fatal("execution started before the user approved the plan")
+		default:
 		}
-		return nil
-	})
-	if err != nil || !started || len(r.cards) != 0 {
-		t.Fatalf("approved execution started = %v, cards = %d, error = %v", started, len(r.cards), err)
+		r.c.Approve(id, true, false, false)
+	case err := <-result:
+		t.Fatalf("planning ended before showing the approval card: %v", err)
+	case <-deadline.Done():
+		t.Fatal("the approval card never appeared")
+	}
+	if err := <-result; err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case auto := <-started:
+		if auto {
+			t.Fatal("plan approval enabled tool auto-approval")
+		}
+	default:
+		t.Fatal("the approved plan never started")
 	}
 }
 

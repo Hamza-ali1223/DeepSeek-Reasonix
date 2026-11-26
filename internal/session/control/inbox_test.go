@@ -61,7 +61,7 @@ func TestQueuedWorkModeSurvivesUpdateAndControllerReopen(t *testing.T) {
 	c := New(Options{SessionPath: session, SessionDir: dir, Sink: event.Discard})
 	rec, err := c.EnqueueInbox(InboxRequest{
 		Intent: sessioninbox.IntentFollowup, Display: "queued", Submit: "queued",
-		WorkMode: WorkModeAgentPlanner, Source: "test",
+		WorkMode: WorkModeAgentPlanner, Source: "test", PlannerSelection: "choice-1",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -79,6 +79,9 @@ func TestQueuedWorkModeSurvivesUpdateAndControllerReopen(t *testing.T) {
 	}
 	if env.WorkMode != string(WorkModeAgentPlanner) {
 		t.Fatalf("reopened work mode = %q, want %q", env.WorkMode, WorkModeAgentPlanner)
+	}
+	if env.PlannerSelection != "choice-1" {
+		t.Fatalf("reopened planner selection = %q", env.PlannerSelection)
 	}
 }
 

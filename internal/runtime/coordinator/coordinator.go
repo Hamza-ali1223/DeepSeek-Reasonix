@@ -737,51 +737,6 @@ Executor instructions:
 Carry out the task, adapting the plan as needed.`, sessionstore.ExecutorHandoffMarker, task, plan, toolBlock, decision.Depth)
 }
 
-// executorToolHandoffContext counters planner "tool unavailable" hallucinations
-// in the handoff. MCP tools are the surface planners actually mis-report (the
-// planner registry filters them away), so the block is only emitted when the
-// executor carries MCP tools; the built-in tool list would just restate the
-// schema already attached to the request and pay its tokens every planned turn.
-func executorToolHandoffContext(a *agent.Agent) string {
-	schemas := a.ToolSchemas()
-	if len(schemas) == 0 {
-		return ""
-	}
-	toolNames := make([]string, 0, len(schemas))
-	mcpNames := make([]string, 0)
-	for _, schema := range schemas {
-		name := strings.TrimSpace(schema.Name)
-		if name == "" {
-			continue
-		}
-		toolNames = append(toolNames, name)
-		if strings.HasPrefix(name, tool.MCPNamePrefix) {
-			mcpNames = append(mcpNames, name)
-		}
-	}
-	if len(mcpNames) == 0 {
-		return ""
-	}
-
-	var b strings.Builder
-	fmt.Fprintf(&b, "- The executor request includes the full tool schema (%d tools).", len(toolNames))
-	fmt.Fprintf(&b, "\n- MCP tools are already registered for the executor in this request (%d MCP tools). MCP tool names include: %s.", len(mcpNames), boundedToolNames(mcpNames, 16))
-	return b.String()
-}
-
-func boundedToolNames(names []string, max int) string {
-	if len(names) == 0 {
-		return "(none)"
-	}
-	if max <= 0 {
-		max = 1
-	}
-	if len(names) <= max {
-		return strings.Join(names, ", ")
-	}
-	return fmt.Sprintf("%s, ... +%d more", strings.Join(names[:max], ", "), len(names)-max)
-}
-
 // SetAsker gives both models the host's question surface. The planner needs it
 // as much as the executor: a decision that shapes the plan must be settled
 // while planning, not stapled to a finished plan.

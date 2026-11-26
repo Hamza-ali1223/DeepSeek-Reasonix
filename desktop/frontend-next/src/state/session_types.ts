@@ -234,6 +234,7 @@ export interface SessionState {
   // its turn_started. A second start naming the same one is the same open
   // delivered twice — a duplicate, not a turn that ended without saying so.
   turnMsgIndex?: number;
+  plannerApprovedSelection?: string;
   entranceOwed: string[];
   enteredThrough: number;
   // Bumped when the transcript's composition changes — a card added, settled,

@@ -101,10 +101,11 @@ function draw(
   const port = over.port ?? new MockPort();
   const onSubmit = over.onSubmit ?? vi.fn(async () => true);
   const st = over.st ?? status();
-  const view = render(
+  const composer = (plannerApprovedSelection?: string) => (
     <Composer
       port={port as unknown as AgentPort}
       status={st}
+      plannerApprovedSelection={plannerApprovedSelection}
       running={over.running ?? false}
       focus={0}
       onSubmit={onSubmit}
@@ -114,10 +115,11 @@ function draw(
       git={"git" in over ? over.git : git()}
       onTreeChanged={over.onTreeChanged}
       draftKey={draftKey(over.host ?? "", st.workspaceRoot ?? "/workspace", st.sessionPath ?? "")}
-    />,
+    />
   );
+  const view = render(composer());
   const box = view.container.querySelector('textarea[aria-label="任务输入"]') as HTMLTextAreaElement;
-  return { ...view, port, onSubmit, box };
+  return { ...view, port, onSubmit, box, approvePlannerSelection: (id: string) => view.rerender(composer(id)) };
 }
 
 describe("composer submission", () => {
@@ -128,9 +130,9 @@ describe("composer submission", () => {
     expect((screen.getByRole("button", { name: "发送" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("selects Agent + Planner for this submission and keeps the selection after sending", async () => {
+  it("switches to Agent only when the active selection is approved", async () => {
     const onSubmit = vi.fn(async (..._args: unknown[]) => true);
-    const { box, container } = draw({ onSubmit });
+    const { box, container, approvePlannerSelection } = draw({ onSubmit });
     fireEvent.click(container.querySelector('[data-action="plan.mode"]')!);
     const plannerChoice = await waitFor(() => {
       const choice = document.querySelector('[role="menu"] [data-value="agent_planner"]');
@@ -142,8 +144,40 @@ describe("composer submission", () => {
 
     fireEvent.change(box, { target: { value: "implement this", selectionStart: 14 } });
     fireEvent.click(screen.getByRole("button", { name: "发送" }));
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith("implement this", undefined, "agent_planner"));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith("implement this", undefined, "agent_planner", expect.any(String)));
+    const approval = onSubmit.mock.calls[0][3] as string;
+    approvePlannerSelection("an earlier selection");
     expect(container.querySelector('[data-action="plan.mode"]')?.textContent).toMatch(/智能体 \+ 规划器|Agent \+ Planner/);
+
+    approvePlannerSelection(approval);
+    expect(container.querySelector('[data-action="plan.mode"]')?.textContent).toMatch(/Agent$/);
+    fireEvent.change(box, { target: { value: "follow up" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+    await waitFor(() => expect(onSubmit).toHaveBeenLastCalledWith("follow up"));
+
+    fireEvent.click(container.querySelector('[data-action="plan.mode"]')!);
+    fireEvent.click(await waitFor(() => {
+      const choice = document.querySelector('[role="menu"] [data-value="agent_planner"]');
+      if (!choice) throw new Error("Agent + Planner choice is not available");
+      return choice;
+    }));
+    approvePlannerSelection("an older queued selection");
+    approvePlannerSelection(approval);
+    expect(container.querySelector('[data-action="plan.mode"]')?.textContent).toMatch(/智能体 \+ 规划器|Agent \+ Planner/);
+  });
+
+    it("leaves ordinary Plan when choosing Agent + Planner", async () => {
+    const port = new MockPort();
+    const setPlan = vi.spyOn(port, "setPlanMode").mockResolvedValue();
+    const { container } = draw({ port, st: status({ plan: true }) });
+    fireEvent.click(container.querySelector('[data-action="plan.mode"]')!);
+    fireEvent.click(await waitFor(() => {
+      const choice = document.querySelector('[role="menu"] [data-value="agent_planner"]');
+      if (!choice) throw new Error("Agent + Planner choice is not available");
+      return choice;
+    }));
+    await waitFor(() => expect(setPlan).toHaveBeenCalledWith(false));
+    await waitFor(() => expect(container.querySelector('[data-action="plan.mode"]')?.textContent).toMatch(/智能体 \+ 规划器|Agent \+ Planner/));
   });
 
   it("keeps Plan selection on the existing plan-mode setting path", async () => {

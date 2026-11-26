@@ -52,8 +52,9 @@ type Event struct {
 	// turn_started: the authored message this turn is about — its turn number
 	// in the conversation, and the session index it takes. A client mints its
 	// own user row, so this is the only thing that names which one.
-	AuthoredTurn *int `json:"authoredTurn,omitempty"`
-	MsgIndex     *int `json:"msgIndex,omitempty"`
+	AuthoredTurn     *int   `json:"authoredTurn,omitempty"`
+	MsgIndex         *int   `json:"msgIndex,omitempty"`
+	PlannerSelection string `json:"plannerSelection,omitempty"`
 	// turn_started / steer: the sending device (absent is the window); the message rides text.
 	Via         *Via         `json:"via,omitempty"`
 	Attachments []Attachment `json:"attachments,omitempty"` // turn_started / steer
@@ -145,6 +146,8 @@ func ToWire(e event.Event) Event {
 	switch e.Kind {
 	case event.Phase:
 		w.Code = e.Code
+		w.MsgIndex = e.MsgIndex
+		w.PlannerSelection = e.PlannerSelection
 	case event.Notice:
 		w.Code = e.Code
 		w.WorkspaceLease = toWireWorkspaceLease(e.WorkspaceLease)

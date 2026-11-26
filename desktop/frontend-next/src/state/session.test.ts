@@ -920,3 +920,11 @@ it("adds only typed planner collaboration phases to the transcript", () => {
   expect(requested.items[0]).toMatchObject({ t: "notice", code: "planner.requested" });
   expect(reduce(requested, { kind: "phase", text: "gateway/sol · planning" })).toBe(requested);
 });
+
+it("projects only the host's accepted planner selection into the composer", () => {
+  const accepted = reduce(initialState, { kind: "phase", code: "planner.approved", msgIndex: 2, plannerSelection: "choice-1" });
+  expect(accepted.plannerApprovedSelection).toBe("choice-1");
+  expect(accepted.items).toEqual([]);
+  expect(reduce(accepted, { kind: "phase", code: "planner.approved", msgIndex: 2, plannerSelection: "choice-1" })).toBe(accepted);
+  expect(reduce(accepted, { kind: "phase", code: "planner.executor_starting" }).plannerApprovedSelection).toBe("choice-1");
+});

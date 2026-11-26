@@ -419,8 +419,9 @@ func (s *Server) logoWordmark(w http.ResponseWriter, _ *http.Request) {
 func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		chipLine
-		Format   string `json:"format"`
-		WorkMode string `json:"workMode"`
+		Format           string `json:"format"`
+		WorkMode         string `json:"workMode"`
+		PlannerSelection string `json:"plannerSelection"`
 		// RefuseUnknownSlash answers a slash command nothing resolves with a
 		// notice instead of sending it to the model.
 		RefuseUnknownSlash bool `json:"refuseUnknownSlash"`
@@ -446,7 +447,7 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(body.Invocations) > 0 {
-		s.submitChips(w, r, body.chipLine, body.Format, workMode)
+		s.submitChips(w, r, body.chipLine, body.Format, workMode, plannerSelection(workMode, body.PlannerSelection))
 		return
 	}
 	trimmed := strings.TrimSpace(body.Input)
@@ -496,7 +497,7 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 			keepUsedWorkspace(ctrl.WorkspaceRoot())
 		}
 	}
-	refused := submitOrShell(ctrl, r, body.Input, body.Format, body.RefuseUnknownSlash, body.LocalShell, workMode)
+	refused := submitOrShell(ctrl, r, body.Input, body.Format, body.RefuseUnknownSlash, body.LocalShell, workMode, plannerSelection(workMode, body.PlannerSelection))
 	s.bindMu.Unlock()
 	if refused {
 		sessionBusy(w)
