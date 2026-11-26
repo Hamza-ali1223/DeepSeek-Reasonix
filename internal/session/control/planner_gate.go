@@ -11,6 +11,17 @@ import (
 	"reasonix/internal/runtime/taskpolicy"
 )
 
+// PlannerSettingsContext reports the current model and available local research tools.
+func (c *Controller) PlannerSettingsContext() (string, []string) {
+	var model string
+	if runner, ok := c.runner.(interface{ PlannerAgent() *agent.Agent }); ok {
+		if planner := runner.PlannerAgent(); planner != nil {
+			model = planner.ModelRef()
+		}
+	}
+	return model, agent.PlannerResearchToolNames(c.mcp.registry())
+}
+
 // The planner gate answers one question: did the user ask for a plan? Twelve
 // keyword tables used to score the answer out of vocabulary; the executor reads
 // the same words with more context and plans for itself when a task needs it.

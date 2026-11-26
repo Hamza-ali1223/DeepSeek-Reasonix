@@ -134,6 +134,11 @@ export interface PlannerSettings {
   consultationTimeoutSeconds: number;
 }
 
+export interface PlannerSettingsSnapshot extends PlannerSettings {
+  modelRef?: string;
+  researchTools?: string[];
+}
+
 export interface PlanApprovalSettings {
   auto: boolean;
   path: string;

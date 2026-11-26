@@ -22,14 +22,34 @@ var plannerNonResearchTools = []string{
 	"wait",
 }
 
+func plannerResearchRegistry(parent *tool.Registry) *tool.Registry {
+	return FilterReadOnlyRegistry(parent, append(SubagentMetaTools(), plannerNonResearchTools...)...)
+}
+
+func isPlannerLocalResearchTool(name string) bool {
+	return name != "use_capability" && !strings.HasPrefix(name, tool.MCPNamePrefix)
+}
+
+// PlannerResearchToolNames lists the local tools eligible for planner research.
+func PlannerResearchToolNames(parent *tool.Registry) []string {
+	var names []string
+	if base := plannerResearchRegistry(parent); base != nil {
+		for _, name := range base.Names() {
+			if isPlannerLocalResearchTool(name) {
+				names = append(names, name)
+			}
+		}
+	}
+	return names
+}
+
 // PlannerToolRegistry builds the planner's read-only research surface, its
 // always-present plan control tools, and an isolated capability proxy. A
 // non-empty names list narrows builtins and MCP capabilities; empty preserves
 // the existing planner surface. A server ID grants eligible non-destructive
 // tools on that server, while a tool ID grants only that exact MCP tool.
 func PlannerToolRegistry(parent *tool.Registry, frontend *usecap.UseCapabilityTool, names []string) *tool.Registry {
-	exclude := append(SubagentMetaTools(), plannerNonResearchTools...)
-	base := FilterReadOnlyRegistry(parent, exclude...)
+	base := plannerResearchRegistry(parent)
 	sub := tool.NewRegistry()
 	sub.CopyDisabledMCPFrom(parent)
 	sub.Add(NewSubmitPlanTool())
@@ -43,7 +63,7 @@ func PlannerToolRegistry(parent *tool.Registry, frontend *usecap.UseCapabilityTo
 	}
 	if base != nil {
 		for _, name := range base.Names() {
-			if name == "use_capability" || strings.HasPrefix(name, tool.MCPNamePrefix) {
+			if !isPlannerLocalResearchTool(name) {
 				continue
 			}
 			if len(names) > 0 && !allowedNames[name] {

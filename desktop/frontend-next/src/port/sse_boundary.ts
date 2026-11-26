@@ -67,11 +67,11 @@ export class SseBoundary extends SseShell {
   }
 
   plannerSettings() {
-    return this.get<import("./boundary").PlannerSettings>("/planner-settings");
+    return this.get<import("./boundary").PlannerSettingsSnapshot>("/planner-settings");
   }
 
   savePlannerSettings(settings: import("./boundary").PlannerSettings) {
-    return this.post0<import("./boundary").PlannerSettings>("/planner-settings", settings);
+    return this.post0<import("./boundary").PlannerSettingsSnapshot>("/planner-settings", settings);
   }
   savePlanApproval(auto: boolean) {
     return this.post0<PlanApprovalSettings>("/plan-approval", { auto });
