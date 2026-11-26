@@ -1,7 +1,7 @@
-name: Fork release (Windows)
+name: Fork release (Windows and Linux)
 
-# Windows-only, unsigned fork builds: the CLI for both Windows architectures
-# plus the Studio desktop installer and portable zip for x64.
+# Unsigned fork builds: the CLI for Windows and Linux, plus the Studio installer,
+# portable zip and Linux packages for the supported architectures.
 #
 # Deliberately not wired to upstream's release machinery:
 #   - tags are `fork-v*` so this can never fire on upstream's `studio-v*` / `v*`;
@@ -68,6 +68,81 @@ jobs:
         with:
           name: fork-cli-windows
           path: dist/*.exe
+          if-no-files-found: error
+
+  linux-cli:
+    name: CLI (linux)
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: desktop/frontend-next/pnpm-lock.yaml
+
+      - name: Build the web app
+        working-directory: desktop/frontend-next
+        run: pnpm install --frozen-lockfile && pnpm build
+
+      - name: Resolve version
+        id: v
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^fork-v(.+)$ ]] || { echo "::error::fork release tag must be fork-v<version>, got: $TAG"; exit 1; }
+          version="${BASH_REMATCH[1]}"
+          semver='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+          [[ "$version" =~ $semver ]] || { echo "::error::invalid fork release version: $version"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build Linux CLI binaries
+        shell: bash
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          set -euo pipefail
+          commit="$(git rev-parse --short=12 HEAD)"
+          built="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          ldflags="-s -w -X main.version=${VERSION} -X main.gitCommit=${commit} -X main.buildTimeUTC=${built}"
+          mkdir -p dist
+          for arch in amd64 arm64; do
+            CGO_ENABLED=0 GOOS=linux GOARCH="$arch" go build -trimpath \
+              -ldflags "$ldflags" -o "dist/reasonix-linux-${arch}" ./cmd/reasonix
+            actual_machine="$(readelf -h "dist/reasonix-linux-${arch}" | awk -F: '/Machine:/ { gsub(/^[[:space:]]+/, "", $2); print $2 }')"
+            expected_machine="Advanced Micro Devices X86-64"
+            [ "$arch" = arm64 ] && expected_machine="AArch64"
+            [ "$actual_machine" = "$expected_machine" ] || {
+              echo "::error::reasonix-linux-${arch} is ${actual_machine}, expected ${expected_machine}"
+              exit 1
+            }
+            bash scripts/package-cli-archive.sh linux "$arch" \
+              "dist/reasonix-linux-${arch}" desktop/frontend-next/dist dist
+            tar -tzf "dist/reasonix-linux-${arch}.tar.gz" | grep -qx 'reasonix'
+            tar -tzf "dist/reasonix-linux-${arch}.tar.gz" | grep -qx 'frontend-next/dist/index.html'
+            rm "dist/reasonix-linux-${arch}"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fork-cli-linux
+          path: dist/reasonix-linux-*.tar.gz
           if-no-files-found: error
 
   windows-studio:
@@ -160,29 +235,128 @@ jobs:
         shell: bash
         run: pnpm exec electron-builder --win --x64 --publish never -c.extraMetadata.version="${{ steps.v.outputs.version }}"
 
-      - name: Checksums
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd dist
-          # packaging/canonical-artifact-names.js has already renamed x64 to
-          # amd64; a leftover spelling is a build studio-manifest could not name.
-          test -f ReasonixStudio-windows-amd64-installer.exe
-          test -f ReasonixStudio-windows-amd64.zip
-          sha256sum ./*.exe ./*.zip > SHA256SUMS
-
       - uses: actions/upload-artifact@v4
         with:
           name: fork-studio-windows
           path: |
             dist/ReasonixStudio-windows-amd64-installer.exe
             dist/ReasonixStudio-windows-amd64.zip
-            dist/SHA256SUMS
+          if-no-files-found: error
+
+  linux-studio:
+    name: Studio (linux/${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      ARCH: ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-22.04
+            ebarch: x64
+          - arch: arm64
+            runner: ubuntu-22.04-arm
+            ebarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: |
+            desktop/frontend-next/pnpm-lock.yaml
+            desktop/electron/pnpm-lock.yaml
+
+      - name: Resolve version
+        id: v
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^fork-v(.+)$ ]] || { echo "::error::fork release tag must be fork-v<version>, got: $TAG"; exit 1; }
+          version="${BASH_REMATCH[1]}"
+          semver='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+          [[ "$version" =~ $semver ]] || { echo "::error::invalid fork release version: $version"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Install Linux packaging dependencies
+        run: sudo apt-get update && sudo apt-get install -y fakeroot rpm cpio xvfb xauth policykit-1
+
+      - name: Install native fpm on ARM64
+        if: matrix.arch == 'arm64'
+        run: |
+          sudo apt-get install -y ruby ruby-dev build-essential
+          sudo gem install --no-document fpm -v 1.16.0
+          echo "USE_SYSTEM_FPM=true" >> "$GITHUB_ENV"
+
+      - name: Build the SPA
+        working-directory: desktop/frontend-next
+        run: pnpm install --frozen-lockfile && pnpm build
+
+      - name: Build the kernel and package payload
+        working-directory: desktop/electron
+        env:
+          REASONIX_VERSION: ${{ github.event.inputs.tag || github.ref_name }}
+          REASONIX_GOARCH: ${{ matrix.arch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${TAG#fork-v}"
+          REASONIX_VERSION="$version" pnpm install --frozen-lockfile
+          REASONIX_VERSION="$version" pnpm run build:host
+          pnpm run build:linux-payload
+
+      - name: Build and package Linux Studio
+        working-directory: desktop/electron
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^fork-v(.+)$ ]] || { echo "::error::fork release tag must be fork-v<version>, got: $TAG"; exit 1; }
+          version="${BASH_REMATCH[1]}"
+          pnpm exec electron-builder --dir --publish never --${{ matrix.ebarch }} \
+            -c.extraMetadata.version="$version"
+          pnpm exec electron-builder --prepackaged "../../dist/linux-unpacked" \
+            --linux deb rpm AppImage --publish never --${{ matrix.ebarch }} \
+            -c.extraMetadata.version="$version"
+
+      - name: Verify Linux packages
+        shell: bash
+        run: |
+          bash scripts/verify-linux-package.sh \
+            "dist/ReasonixStudio-linux-${ARCH}.deb" \
+            "dist/ReasonixStudio-linux-${ARCH}.rpm" "$ARCH"
+          bash scripts/verify-linux-appimage.sh \
+            "dist/ReasonixStudio-linux-${ARCH}.AppImage" "$ARCH"
+          bash scripts/linux-install-smoke.sh \
+            "dist/ReasonixStudio-linux-${ARCH}.deb" "$ARCH" "${TAG#fork-v}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fork-studio-linux-${{ matrix.arch }}
+          path: |
+            dist/ReasonixStudio-linux-${{ matrix.arch }}.deb
+            dist/ReasonixStudio-linux-${{ matrix.arch }}.rpm
+            dist/ReasonixStudio-linux-${{ matrix.arch }}.AppImage
           if-no-files-found: error
 
   publish:
     name: Publish
-    needs: [windows-cli, windows-studio]
+    needs: [windows-cli, linux-cli, windows-studio, linux-studio]
     runs-on: ubuntu-latest
     env:
       TAG: ${{ github.event.inputs.tag || github.ref_name }}
@@ -192,16 +366,38 @@ jobs:
           path: assets
           merge-multiple: true
 
-      # The two jobs both write SHA256SUMS for their own files, so one overwrites
-      # the other when they are merged into one directory. Rebuild it here from
-      # what actually arrived.
-      - name: One checksum file for everything
+      # Build and verify the complete release inventory before publishing. Each
+      # name is explicit so a missing package or unexpected extra cannot pass.
+      - name: Verify artifacts and write combined checksums
         shell: bash
         run: |
           set -euo pipefail
           cd assets
-          rm -f SHA256SUMS
-          sha256sum ./*.exe ./*.zip > SHA256SUMS
+          expected=(
+            reasonix-windows-amd64.exe
+            reasonix-windows-arm64.exe
+            reasonix-linux-amd64.tar.gz
+            reasonix-linux-arm64.tar.gz
+            ReasonixStudio-windows-amd64-installer.exe
+            ReasonixStudio-windows-amd64.zip
+            ReasonixStudio-linux-amd64.deb
+            ReasonixStudio-linux-amd64.rpm
+            ReasonixStudio-linux-amd64.AppImage
+            ReasonixStudio-linux-arm64.deb
+            ReasonixStudio-linux-arm64.rpm
+            ReasonixStudio-linux-arm64.AppImage
+          )
+          for file in "${expected[@]}"; do
+            test -s "$file" || { echo "::error::missing or empty release asset: $file"; exit 1; }
+          done
+          actual_count="$(find . -maxdepth 1 -type f ! -name SHA256SUMS | wc -l)"
+          test "$actual_count" -eq "${#expected[@]}" || {
+            echo "::error::expected ${#expected[@]} release assets, found $actual_count"
+            find . -maxdepth 1 -type f -printf '%f\\n' | sort
+            exit 1
+          }
+          sha256sum "${expected[@]}" > SHA256SUMS
+          sha256sum -c SHA256SUMS
           cat SHA256SUMS
 
       - name: Publish
@@ -213,6 +409,16 @@ jobs:
           prerelease: false
           make_latest: true
           files: |
-            assets/*.exe
-            assets/*.zip
+            assets/reasonix-windows-amd64.exe
+            assets/reasonix-windows-arm64.exe
+            assets/reasonix-linux-amd64.tar.gz
+            assets/reasonix-linux-arm64.tar.gz
+            assets/ReasonixStudio-windows-amd64-installer.exe
+            assets/ReasonixStudio-windows-amd64.zip
+            assets/ReasonixStudio-linux-amd64.deb
+            assets/ReasonixStudio-linux-amd64.rpm
+            assets/ReasonixStudio-linux-amd64.AppImage
+            assets/ReasonixStudio-linux-arm64.deb
+            assets/ReasonixStudio-linux-arm64.rpm
+            assets/ReasonixStudio-linux-arm64.AppImage
             assets/SHA256SUMS
