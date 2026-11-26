@@ -72,6 +72,12 @@ desktop/**/.reasonix/
 # CodeGraph per-project index (rebuilt locally; never committed)
 .codegraph/
 
+# Understand-Anything knowledge graph and intermediates (rebuilt locally by
+# /understand; never committed). The legacy data dir name is kept for older
+# installs that still write it.
+.ua/
+.understand-anything/
+
 # Editor / OS
 .DS_Store
 Thumbs.db
