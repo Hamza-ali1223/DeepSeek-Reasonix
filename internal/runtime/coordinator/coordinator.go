@@ -37,11 +37,12 @@ implies. Record read paths as verified_files and inferred ones as
 candidate_files; never present an unread path as verified. Set requires_approval
 when execution should stop for the user; the host owns the final decision.
 
-A host-authored <planner-turn> block at the end of the user turn selects the
-planning depth. For depth=light, submit a compact objective with 1-4 steps,
-and likely touchpoints. For depth=full, inspect enough
-evidence to separate verified touchpoints from candidates, then also fill
-non-goals and per-step risks.
+A host-authored <planner-turn> block at the end of the user turn carries this
+turn's research budget: the cap, and the round to aim to finish by. The host
+enforces the cap. The target is guidance, so hold the last two rounds for an
+unresolved question and submit earlier once you have enough evidence.
+Inspect enough evidence to separate verified touchpoints from candidates, then
+fill non-goals and per-step risks.
 Label anything unproven in assumptions rather than stating it as fact.
 
 If execution needs a user-owned decision or a missing user-provided value
@@ -112,6 +113,7 @@ type Coordinator struct {
 	plannerPlanApprover agent.PlannerPlanApprover
 	consultMu           sync.Mutex
 	consultLimit        int
+	consultTimeout      time.Duration
 	owed                owedOutcomes // executor runs the planner has not been shown
 }
 
@@ -169,6 +171,7 @@ func newCoordinator(planner provider.Provider, plannerSession *sessionstore.Sess
 		sink:            sink,
 		plannerPolicy:   policy,
 		consultLimit:    1,
+		consultTimeout:  defaultConsultationTimeout,
 	}
 }
 
@@ -376,6 +379,7 @@ func (c *Coordinator) Run(ctx context.Context, input string) error {
 			c.sink.Emit(event.Event{
 				Kind:   event.Notice,
 				Level:  event.LevelWarn,
+				Code:   event.NoticeCodePlannerNoPlan,
 				Text:   plannerResearchFallbackNotice,
 				Detail: plannerResearchPauseDetail(err),
 				Source: event.UsageSourcePlanner,
@@ -656,13 +660,37 @@ func plannerResearchPauseDetail(err error) string {
 	return "planner did not finalize after its bounded research and finalization rounds"
 }
 
+// plannerTurnInput stamps the turn's budget where the planner can see it. The
+// host enforces the cap; the target below it is guidance, because refusing
+// research at the target would make the reserve rounds unusable.
 func plannerTurnInput(input string, decision agent.PlannerDecision) string {
-	return fmt.Sprintf(`%s
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s\n\n<planner-turn>\nroute: %s\n", strings.TrimSpace(input), decision.Route)
+	if limit := decision.MaxResearchRounds; limit > 0 {
+		fmt.Fprintf(&b, "max_research_rounds: %d\n", limit)
+		b.WriteString("One research round is one reply that issues a batch of research calls,\n")
+		b.WriteString("regardless of how many calls are in that batch.\n")
+		if aim := aimByRound(limit); aim > 0 {
+			fmt.Fprintf(&b, "aim_by_research_round: %d\n", aim)
+			fmt.Fprintf(&b, "Aim to finalize using the results of at most %d research rounds.\n", aim)
+			fmt.Fprintf(&b, "Use rounds %d and %d only if an important question remains unresolved.\n", aim+1, limit)
+			b.WriteString("Submit earlier if you have enough evidence.\n")
+		} else {
+			b.WriteString("Submit as soon as you have enough evidence; this cap carries no reserve.\n")
+		}
+	}
+	b.WriteString("</planner-turn>")
+	return b.String()
+}
 
-<planner-turn>
-depth: %s
-route: %s
-</planner-turn>`, strings.TrimSpace(input), decision.Depth, decision.Route)
+// aimByRound is the round the planner is asked to finish by: the cap less two,
+// so the last two stay free for an unresolved question. A cap below three has no
+// room for that reserve.
+func aimByRound(limit int) int {
+	if limit < 3 {
+		return 0
+	}
+	return limit - 2
 }
 
 func formatHandoff(task, plan string, toolContext ...string) string {

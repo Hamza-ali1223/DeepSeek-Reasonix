@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"reasonix/internal/contract/agentpreset"
+	"reasonix/internal/contract/config"
 	"reasonix/internal/runtime/agent"
 	"reasonix/internal/runtime/taskpolicy"
 )
@@ -13,11 +14,6 @@ import (
 // The planner gate answers one question: did the user ask for a plan? Twelve
 // keyword tables used to score the answer out of vocabulary; the executor reads
 // the same words with more context and plans for itself when a task needs it.
-
-const (
-	plannerLightResearchRounds = 2
-	plannerFullResearchRounds  = 6
-)
 
 const (
 	plannerReasonExplicitPlanMode   = "explicit_plan_mode"
@@ -122,23 +118,34 @@ func plannerExecutorDecision(reason string) agent.PlannerDecision {
 	}
 }
 
+// plannerPlanDecision stamps the default cap on every planning route. Routing
+// answers whether a plan is wanted and cannot see the user's setting, so it
+// states the default rather than nothing: in this loop zero rounds means no
+// bound at all, and a routing decision used on its own must never be unbounded.
+// NewPlannerPolicy replaces it with the session's configured value.
 func plannerPlanDecision(route agent.PlannerRoute, depth agent.PlannerDepth, reason string) agent.PlannerDecision {
-	rounds := plannerLightResearchRounds
-	if depth == agent.PlannerDepthFull {
-		rounds = plannerFullResearchRounds
-	}
 	return agent.PlannerDecision{
 		Route:             route,
 		Depth:             depth,
 		Reason:            reason,
-		MaxResearchRounds: rounds,
+		MaxResearchRounds: config.DefaultPlannerResearchRounds,
 	}
 }
 
-// NewPlannerPolicy returns the structured deterministic policy used by the
-// two-model product path.
-func NewPlannerPolicy() agent.PlannerPolicy {
-	return DecidePlannerRoute
+// NewPlannerPolicy returns the policy the two-model product path uses, with the
+// research cap this session opened with. Routing answers whether a plan is
+// wanted; the budget bounds that answer, and zero would leave it unbounded.
+func NewPlannerPolicy(rounds int) agent.PlannerPolicy {
+	if rounds <= 0 {
+		rounds = config.DefaultPlannerResearchRounds
+	}
+	return func(ctx context.Context, input string) agent.PlannerDecision {
+		d := DecidePlannerRoute(ctx, input)
+		if d.Route != agent.PlannerRouteExecutorOnly {
+			d.MaxResearchRounds = rounds
+		}
+		return d
+	}
 }
 
 // NewPlannerGate retains the historical bool shape for direct callers.

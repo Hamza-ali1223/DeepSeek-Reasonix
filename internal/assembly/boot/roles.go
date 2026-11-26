@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"reasonix/internal/base/netclient"
 	"reasonix/internal/contract/config"
@@ -84,13 +85,14 @@ func (w roleWiring) planner(opts Options, executor *agent.Agent, executorModel, 
 		CapabilityLedger:  plannerLedger,
 		CapabilityAudit:   plannerAudit,
 	}
-	runner := coordinator.NewCoordinatorWithPlannerPolicy(plannerProv, plannerSess, pe.Price, plannerTools, plannerOpts, executor, w.cfg.Agent.Temperature, w.sink, control.NewPlannerPolicy())
+	runner := coordinator.NewCoordinatorWithPlannerPolicy(plannerProv, plannerSess, pe.Price, plannerTools, plannerOpts, executor, w.cfg.Agent.Temperature, w.sink, control.NewPlannerPolicy(w.cfg.PlannerResearchRounds()))
 	if w.cfg.Agent.PlannerConsultation && runner.PlannerAgent() != nil {
 		limit := w.cfg.Agent.PlannerConsultationLimit
 		if limit == 0 {
 			limit = 1
 		}
 		runner.SetConsultationLimit(limit)
+		runner.SetConsultationTimeout(time.Duration(w.cfg.ConsultationTimeout()) * time.Second)
 		w.reg.Add(coordinator.NewConsultationTool(runner))
 	}
 	return runner, executorModel + " + planner " + pe.Model, nil
