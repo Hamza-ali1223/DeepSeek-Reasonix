@@ -134,8 +134,10 @@ jobs:
             }
             bash scripts/package-cli-archive.sh linux "$arch" \
               "dist/reasonix-linux-${arch}" desktop/frontend-next/dist dist
-            tar -tzf "dist/reasonix-linux-${arch}.tar.gz" | grep -qx 'reasonix'
-            tar -tzf "dist/reasonix-linux-${arch}.tar.gz" | grep -qx 'frontend-next/dist/index.html'
+            archive_listing="$RUNNER_TEMP/reasonix-linux-${arch}.contents"
+            tar -tzf "dist/reasonix-linux-${arch}.tar.gz" > "$archive_listing"
+            grep -Fxq 'reasonix' "$archive_listing"
+            grep -Fxq 'frontend-next/dist/index.html' "$archive_listing"
             rm "dist/reasonix-linux-${arch}"
           done
 
@@ -256,9 +258,11 @@ jobs:
           - arch: amd64
             runner: ubuntu-22.04
             ebarch: x64
+            unpacked_dir: linux-unpacked
           - arch: arm64
             runner: ubuntu-22.04-arm
             ebarch: arm64
+            unpacked_dir: linux-arm64-unpacked
     steps:
       - uses: actions/checkout@v4
         with:
@@ -330,7 +334,7 @@ jobs:
           version="${BASH_REMATCH[1]}"
           pnpm exec electron-builder --dir --publish never --${{ matrix.ebarch }} \
             -c.extraMetadata.version="$version"
-          pnpm exec electron-builder --prepackaged "../../dist/linux-unpacked" \
+          pnpm exec electron-builder --prepackaged "../../dist/${{ matrix.unpacked_dir }}" \
             --linux deb rpm AppImage --publish never --${{ matrix.ebarch }} \
             -c.extraMetadata.version="$version"
 
