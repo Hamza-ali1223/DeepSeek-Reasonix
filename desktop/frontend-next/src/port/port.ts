@@ -675,7 +675,7 @@ export interface AgentPort extends RunningWorkPort, MemoryHoldPort, WorkspacePre
 
   // chips carries skill chips beside the line; without it the line is parsed
   // as typed, so a kernel that predates chips still runs a leading one.
-  submit(text: string, chips?: ChipCall, workMode?: WorkMode): Promise<Queued | void>;
+  submit(text: string, chips?: ChipCall, workMode?: WorkMode, plannerSelection?: string): Promise<Queued | void>;
   // /submit 409s once a turn holds the session. Mid-turn input is durable and
   // goes through the inbox, which delivers it at the next tool boundary. The
   // receipt is what makes it cancellable while it waits there.
@@ -683,7 +683,7 @@ export interface AgentPort extends RunningWorkPort, MemoryHoldPort, WorkspacePre
   // A whole turn, queued because one is already running. The kernel
   // refuses /submit with a code rather than a sentence, so this is what
   // the client does about it instead of showing anyone the refusal.
-  queueFollowup(text: string, chips?: ChipCall, workMode?: WorkMode): Promise<Queued>;
+  queueFollowup(text: string, chips?: ChipCall, workMode?: WorkMode, plannerSelection?: string): Promise<Queued>;
   // Takes a queued line back before the turn reads it, and refuses once it has.
   cancelQueued(itemId: string): Promise<void>;
   // The queue as the kernel holds it. Read on every inbox_changed frame: the

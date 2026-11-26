@@ -30,14 +30,14 @@ export function useSubmit({ port, running, dispatch, trajDispatch, refreshStatus
   // the words are fine, the timing is not. Queueing them is what that code
   // asks for.
   const submitOrQueue = useCallback(
-    async (text: string, id: string, chips?: ChipCall, workMode?: WorkMode) => {
+    async (text: string, id: string, chips?: ChipCall, workMode?: WorkMode, plannerSelection?: string) => {
       try {
-        const held = workMode ? await port.submit(text, chips, workMode) : await port.submit(text, chips);
+        const held = workMode ? await port.submit(text, chips, workMode, plannerSelection) : await port.submit(text, chips);
         if (held?.paused && held.itemId) dispatch({ kind: "__queued", id, itemId: held.itemId, queued: "followup", paused: true } as never);
         refreshStatus();
       } catch (e) {
         if (!(e instanceof HttpError) || e.reason?.code !== "busy.session_running") throw e;
-        const queued = workMode ? await port.queueFollowup(text, chips, workMode) : await port.queueFollowup(text, chips);
+        const queued = workMode ? await port.queueFollowup(text, chips, workMode, plannerSelection) : await port.queueFollowup(text, chips);
         if (queued?.itemId) dispatch({ kind: "__queued", id, itemId: queued.itemId, queued: "followup", paused: queued.paused } as never);
       }
     },
@@ -45,7 +45,7 @@ export function useSubmit({ port, running, dispatch, trajDispatch, refreshStatus
   );
 
   return useCallback(
-    async (text: string, chips?: ChipCall, workMode?: WorkMode): Promise<Submitted> => {
+    async (text: string, chips?: ChipCall, workMode?: WorkMode, plannerSelection?: string): Promise<Submitted> => {
       const queuedWhileRunning = running;
       const id = localId();
       dispatch({ kind: "__user", text, pending: queuedWhileRunning, id } as never);
@@ -54,11 +54,11 @@ export function useSubmit({ port, running, dispatch, trajDispatch, refreshStatus
         if (queuedWhileRunning) {
           const followup = !!chips || workMode === "agent_planner" || runningIntent === "followup";
           const queued = followup
-            ? workMode ? await port.queueFollowup(text, chips, workMode) : await port.queueFollowup(text, chips)
+            ? workMode ? await port.queueFollowup(text, chips, workMode, plannerSelection) : await port.queueFollowup(text, chips)
             : await port.steer(text);
           if (queued?.itemId) dispatch({ kind: "__queued", id, itemId: queued.itemId, queued: followup || queued.paused || queued.disposition === "queued_followup" ? "followup" : "steer", paused: queued.paused } as never);
         } else {
-          await submitOrQueue(text, id, chips, workMode);
+          await submitOrQueue(text, id, chips, workMode, plannerSelection);
         }
         return true;
       } catch (e) {

@@ -49,6 +49,8 @@ type InboxRequest struct {
 	FreezeRefs []string
 	// Via is the paired device the item came from; nil is the window.
 	Via *provider.Via
+
+	PlannerSelection string
 }
 
 // Inbox port on SessionAPI.
@@ -352,6 +354,8 @@ func (c *Controller) EnqueueInbox(req InboxRequest) (sessioninbox.InboxReceipt, 
 		Invocations:  sessionInboxInvocations(req.Invocations),
 		Extra:        maps.Clone(req.Extra),
 		Via:          req.Via,
+
+		PlannerSelection: req.PlannerSelection,
 	}
 	// Text the host wrote for another party is data: an @token in it names nothing here.
 	if req.SurfaceAction == nil && !req.Origin.IsHost() {
@@ -450,6 +454,8 @@ func (c *Controller) UpdateInboxItem(id, display, raw, submit string) (sessionin
 		Attachments:  append([]string(nil), previous.Attachments...),
 		Extra:        maps.Clone(previous.Extra),
 		Via:          previous.Via,
+
+		PlannerSelection: previous.PlannerSelection,
 	}
 	env.FrozenRefBlock, env.FrozenImages, env.ReferenceErrors = c.freezeInboxReferences(context.Background(), submit, env.ExplicitRefs)
 	updated, err := st.UpdateItem(id, env)

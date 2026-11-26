@@ -44,5 +44,5 @@ export const PLAN: Messages = {
   "plan.turns_turns_requests_requests_tokens": { zh: "{turns} 轮 · {requests} 次请求 · {tokens} tokens · 用时 {time}", en: "{turns} turns · {requests} requests · {tokens} tokens · {time} of work" },
   "plan.waiting_for_your_answer": { zh: "在等你回答", en: "waiting for your answer" },
   "plan.you_stopped_it": { zh: "你手动停止", en: "you stopped it" },
-  "plan.a_submitted_plan_starts_without": { zh: "计划提交后不再等你点批准，直接开始执行，对话里会留下一条说明。只放行这一次点击：工具批准、沙箱和拒绝规则照常生效。默认关闭，只写在你自己的用户配置里，项目配置不能替你打开。", en: "A submitted plan starts without waiting for your click, and the transcript notes it. Only that click is released: tool approvals, the sandbox and deny rules still apply. Off by default, written only to your own user config; a project config cannot turn it on for you." },
+  "plan.a_submitted_plan_starts_without": { zh: "适用自动批准的计划会直接开始执行，对话里会留下一条说明。只放行这一次点击：工具批准、沙箱和拒绝规则照常生效。默认关闭，只写在你自己的用户配置里，项目配置不能替你打开。", en: "When automatic approval applies, the plan starts right away and the transcript notes it. Only that click is released: tool approvals, the sandbox and deny rules still apply. Off by default, written only to your own user config; a project config cannot turn it on for you." },
 };

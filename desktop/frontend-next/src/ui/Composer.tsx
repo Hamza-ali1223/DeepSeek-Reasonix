@@ -8,6 +8,7 @@ import { reason } from "../i18n/kernel";
 import { keepPasteAsFile, PasteKeep, type PasteChip } from "./pastekeep";
 import type { AgentPort, ChipCall, SessionStatus, WorkMode, WorkspaceGit, WorkspaceInfo } from "../port/port";
 import { Picker } from "./Menu";
+import { ComposerWorkModePicker } from "./ComposerWorkModePicker";
 import { BranchChip } from "./BranchChip";
 import { WorktreeChip } from "./WorktreeChip";
 import { useWorktreeSetup, WorktreeSetupFailure } from "./useWorktreeSetup";
@@ -67,7 +68,7 @@ interface Props {
   // Bumped when something outside asks for the cursor — answering a plan card
   // with "revise" is a request to say what to change, and the saying happens here.
   focus?: number;
-  onSubmit: (text: string, chips?: ChipCall, workMode?: WorkMode) => Promise<Submitted>;
+  onSubmit: (text: string, chips?: ChipCall, workMode?: WorkMode, plannerSelection?: string) => Promise<Submitted>;
   onChanged: () => void;
   onError: (e: unknown) => void;
   onSettings?: (section?: string) => void;
@@ -86,14 +87,24 @@ interface Props {
   // Bumped when settings change; a source edited there can change the ladder.
   pulse?: number;
   draftKey?: string;
+  plannerApprovedSelection?: string;
 }
 
-export function Composer({ port, status, running, queued = false, quote, restore, inject, focus, onSubmit, onChanged, onError, onSettings = () => {}, side = false, onSide, sidePanel, queueStrip, changeCount = 0, countElsewhere = false, git = null, workspace = null, onTreeChanged, pulse = 0, draftKey = "", fresh = false, worktreeTarget, onWorktreePhase }: Props) {
+export function Composer({ port, status, running, queued = false, quote, restore, inject, focus, onSubmit, onChanged, onError, onSettings = () => {}, side = false, onSide, sidePanel, queueStrip, changeCount = 0, countElsewhere = false, git = null, workspace = null, onTreeChanged, pulse = 0, draftKey = "", plannerApprovedSelection, fresh = false, worktreeTarget, onWorktreePhase }: Props) {
   const touch = touchKeyboard();
   const providerOrder = useProviderOrder();
   const modelGroups = useModelFilter();
   const [submitting, setSubmitting] = useState(false);
-  const [workMode, setWorkMode] = useState<WorkMode | undefined>();
+  const [plannerChoice, setPlannerChoice] = useState<{ port: AgentPort; id: string }>();
+  const plannerSelection = plannerChoice?.port === port && plannerChoice.id !== plannerApprovedSelection
+    ? plannerChoice.id
+    : undefined;
+  const workMode = plannerSelection ? "agent_planner" : undefined;
+  useEffect(() => {
+    if (plannerApprovedSelection) {
+      setPlannerChoice((current) => current?.port === port && current.id === plannerApprovedSelection ? undefined : current);
+    }
+  }, [port, plannerApprovedSelection]);
   const worktree = useWorktreeSetup(port, fresh && !!git?.repo, status?.workspaceRoot ?? "", onChanged, onTreeChanged, status?.sessionPath ?? "");
   const [setupDraft, setSetupDraft] = useState<{ text: string; files: string[] }>({ text: "", files: [] });
   const setupPhase = worktree.stage?.phase ?? null;
@@ -271,7 +282,7 @@ export function Composer({ port, status, running, queued = false, quote, restore
           if (!prepared) { restoreDraft(); return; }
         }
         const sent = workMode === "agent_planner"
-          ? await onSubmit(line, call, workMode)
+          ? await onSubmit(line, call, workMode, plannerSelection)
           : call ? await onSubmit(line, call) : await onSubmit(line);
         if (sent === true) {
           finishSubmit(true);
@@ -697,29 +708,19 @@ export function Composer({ port, status, running, queued = false, quote, restore
           </button>
           {onSide && <SideAskButton open={side} onToggle={onSide} panel={sidePanel} />}
           {refine.button}
-        <div className="studio-mode-control">
-          <Picker
-            className="mode studio-mode-picker"
-            triggerAction="plan.mode"
-            data-action="plan.mode"
-            ariaPressed={status?.plan ?? false}
-            place="bottom"
-            title={t("composer.work_mode")}
-            menuClassName="composer-menu mode-menu"
-            current={workMode ?? (status?.plan ? "plan" : "agent")}
-            pending={busy["plan"]}
-            items={[
-              { value: "__mode", label: t("composer.work_mode"), right: t("common.current_task"), header: true },
-              { value: "agent", label: "Agent", desc: t("composer.run_tasks_with_enabled_tools") },
-              { value: "plan", label: "Plan", desc: t("composer.plan_steps_before_changing_files") },
-              { value: "agent_planner", label: t("composer.agent_plus_planner"), desc: t("composer.plan_with_dedicated_model_before_execution") },
-            ]}
-            onPick={(value) => value === "agent_planner"
-              ? setWorkMode("agent_planner")
-              : change("plan", async () => { setWorkMode(undefined); await port.setPlanMode(value === "plan"); })}
-            label={<><StudioIcon name={status?.plan && workMode !== "agent_planner" ? "tasks" : "agent"} /><span className="studio-sr-label">{t("common.plan")}</span><span>{workMode === "agent_planner" ? t("composer.agent_plus_planner") : status?.plan ? "Plan" : "Agent"}</span><StudioIcon name="down" /></>}
-          />
-        </div>
+        <ComposerWorkModePicker mode={workMode ?? (status?.plan ? "plan" : "agent")} pending={busy["plan"]}
+          onPick={(value) => {
+            if (value === "agent_planner") {
+              const choice = { port, id: crypto.getRandomValues(new Uint32Array(4)).join("-") };
+              if (status?.plan) {
+                change("plan", async () => { await port.setPlanMode(false); setPlannerChoice(choice); });
+              } else {
+                setPlannerChoice(choice);
+              }
+            } else {
+              change("plan", async () => { setPlannerChoice(undefined); await port.setPlanMode(value === "plan"); });
+            }
+          }} />
         {git?.repo && (worktree.sources || status?.workspaceRoot) ? <WorktreeChip port={port} workspace={workspace} onChanged={onChanged} onSwitched={onTreeChanged} onError={onError} changeCount={countElsewhere ? 0 : changeCount} sources={worktree.sources ?? { available: false, sourceRoot: status?.workspaceRoot ?? "", sources: [] }} canCreate={fresh && !!worktree.sources?.available} selection={worktree.selection} branch={git.branch} busy={submitting || running} onSelect={worktree.setSelection} refresh={worktree.refresh} /> : <BranchChip port={port} git={git} changeCount={changeCount} countElsewhere={countElsewhere} onChanged={onChanged} onSwitched={onTreeChanged} onError={onError} />}
         {/* The toggle keeps its legacy meaning: it follows `plan`, which the
             kernel turns off the moment a plan is approved. The lifecycle is a

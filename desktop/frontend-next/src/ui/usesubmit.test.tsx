@@ -71,9 +71,9 @@ describe("useSubmit", () => {
     const submit = vi.fn(async () => undefined);
     const port = { submit } as unknown as AgentPort;
     const { result } = renderHook(() => useSubmit({ port, running: false, dispatch: vi.fn(), trajDispatch: vi.fn(), refreshStatus: vi.fn(), fail: vi.fn() }));
-    const send = result.current as (text: string, chips?: unknown, workMode?: string) => Promise<boolean | "shell_unavailable">;
-    expect(await send("implement this", undefined, "agent_planner")).toBe(true);
-    expect(submit).toHaveBeenCalledWith("implement this", undefined, "agent_planner");
+    const send = result.current;
+    expect(await send("implement this", undefined, "agent_planner", "choice-1")).toBe(true);
+    expect(submit).toHaveBeenCalledWith("implement this", undefined, "agent_planner", "choice-1");
   });
 
   it("passes Agent + Planner as per-submission intent into the durable follow-up queue", async () => {
@@ -82,9 +82,9 @@ describe("useSubmit", () => {
     const port = { queueFollowup } as unknown as AgentPort;
     const dispatch = vi.fn();
     const { result } = renderHook(() => useSubmit({ port, running: true, dispatch, trajDispatch: vi.fn(), refreshStatus: vi.fn(), fail: vi.fn() }));
-    const send = result.current as (text: string, chips?: unknown, workMode?: string) => Promise<boolean | "shell_unavailable">;
-    expect(await send("do this after", undefined, "agent_planner")).toBe(true);
-    expect(queueFollowup).toHaveBeenCalledWith("do this after", undefined, "agent_planner");
+    const send = result.current;
+    expect(await send("do this after", undefined, "agent_planner", "choice-1")).toBe(true);
+    expect(queueFollowup).toHaveBeenCalledWith("do this after", undefined, "agent_planner", "choice-1");
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ kind: "__queued", queued: "followup", itemId: "queued-1" }));
   });
 

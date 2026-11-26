@@ -213,7 +213,7 @@ export const SETTINGS: Messages = {
   "settings.with_it_off_or_hidden": { zh: "关闭或收起时，这些页面仍可从设置和侧栏打开", en: "With it off or hidden, these pages still open from settings and the sidebar" },
   "settings.workbench_full_screen": { zh: "工作台全屏", en: "Workbench full screen" },
   "settings.you_choose_where": { zh: "写入位置由你选择", en: "You choose where" },
-  "settings.show_plans_before_running": { zh: "计划做好后要不要先给你看", en: "Whether a finished plan is shown to you before it runs" },
+  "settings.show_plans_before_running": { zh: "控制计划能否自动开始。智能体 + 规划器的初始计划始终需要你批准。", en: "Controls when plans can start automatically. Agent + Planner always asks you to approve its initial plan." },
   "settings.every_time": { zh: "每次", en: "Every time" },
   "settings.not_needed": { zh: "不需要", en: "Not needed" },
   "settings.say_what_a_step_did": { zh: "每做完一步要不要说一句在干什么", en: "Whether to say a line about what each step did" },

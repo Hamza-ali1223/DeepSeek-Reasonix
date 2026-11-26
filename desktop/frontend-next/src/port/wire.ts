@@ -715,6 +715,7 @@ export interface WireEvent {
   // that says which row the kernel just started a turn for.
   authoredTurn?: number;
   msgIndex?: number;
+  plannerSelection?: string;
   // turn_started / steer: the paired device the message came from; absent is
   // the window. The message itself rides text, for every client that did not
   // send it.

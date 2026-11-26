@@ -63,10 +63,11 @@ type traceReading struct {
 // traceCase is one fixture: what the executor answers, and — when the fixture
 // is a two-model turn — what the planner answers first.
 type traceCase struct {
-	input    string
-	executor [][]provider.Chunk
-	planner  [][]provider.Chunk
-	workMode string
+	input            string
+	executor         [][]provider.Chunk
+	planner          [][]provider.Chunk
+	workMode         string
+	plannerSelection string
 	// interactive wires the host's question surfaces, which is what makes an
 	// approval or an ask reachable at all: without them a tool call is either
 	// auto-allowed or told to decide for itself, and no barrier ever lands.
@@ -164,7 +165,7 @@ func runTrace(t *testing.T, tc traceCase) traceReading {
 	// The serve frontend's own entry point, because the turn boundary is part of
 	// what this compares: Run is synchronous and closes no turn, so a harness
 	// built on it would be measuring a shape no frontend produces.
-	body, err := json.Marshal(map[string]string{"input": tc.input, "workMode": tc.workMode})
+	body, err := json.Marshal(map[string]string{"input": tc.input, "workMode": tc.workMode, "plannerSelection": tc.plannerSelection})
 	if err != nil {
 		t.Fatalf("marshal submit: %v", err)
 	}
@@ -340,9 +341,10 @@ func TestTwoModelTurnKeepsEachProducersOwnFacts(t *testing.T) {
 
 func TestAgentPlannerWorkModeRoutesExplicitlyAndWaitsForApproval(t *testing.T) {
 	r := runTrace(t, traceCase{
-		input:       "implement the feature",
-		workMode:    "agent_planner",
-		interactive: true,
+		plannerSelection: "choice-1",
+		input:            "implement the feature",
+		workMode:         "agent_planner",
+		interactive:      true,
 		planner: [][]provider.Chunk{{
 			{Type: provider.ChunkToolCall, ToolCall: &provider.ToolCall{
 				ID: "plan-1", Name: "submit_plan",
@@ -351,13 +353,23 @@ func TestAgentPlannerWorkModeRoutesExplicitlyAndWaitsForApproval(t *testing.T) {
 		}},
 		executor: [][]provider.Chunk{{say("implemented")}},
 	})
-	approvalAt, executorAt := -1, -1
+	approvalAt, acceptedAt, executorAt := -1, -1, -1
+	var turnIndex *int
 	for i, e := range r.live {
 		if e.Code == event.NoticeCodeTurnIdentityMismatch {
 			t.Fatalf("planner reused the executor's authored turn identity: %s", e.Detail)
 		}
 		if e.Kind == "approval_request" && approvalAt < 0 {
 			approvalAt = i
+		}
+		if e.Kind == "turn_started" && e.MsgIndex != nil {
+			turnIndex = e.MsgIndex
+		}
+		if e.Kind == "phase" && e.Code == "planner.approved" {
+			if acceptedAt >= 0 || e.MsgIndex == nil || turnIndex == nil || *e.MsgIndex != *turnIndex || e.PlannerSelection != "choice-1" {
+				t.Fatalf("approval must name its turn once: %+v", e)
+			}
+			acceptedAt = i
 		}
 		if e.Kind == "phase" && e.Source == "executor" && executorAt < 0 {
 			executorAt = i
@@ -366,8 +378,8 @@ func TestAgentPlannerWorkModeRoutesExplicitlyAndWaitsForApproval(t *testing.T) {
 	if approvalAt < 0 {
 		t.Fatalf("Agent + Planner did not ask before execution: %+v", r.live)
 	}
-	if executorAt < 0 || approvalAt > executorAt {
-		t.Fatalf("executor phase at %d preceded/missed approval at %d", executorAt, approvalAt)
+	if !(approvalAt < acceptedAt && acceptedAt < executorAt) {
+		t.Fatalf("expected card, accepted approval, executor in order, got %d, %d, %d", approvalAt, acceptedAt, executorAt)
 	}
 }
 
@@ -393,7 +405,7 @@ func TestAgentPlannerWorkModeRejectionStopsBeforeExecutor(t *testing.T) {
 		if e.Kind == "approval_request" && approvalAt < 0 {
 			approvalAt = i
 		}
-		if e.Kind == "phase" && e.Source == "executor" {
+		if e.Kind == "phase" && (e.Source == "executor" || e.Code == "planner.approved") {
 			t.Fatalf("rejected Agent + Planner plan fell through to the executor at %d: %+v", i, r.live)
 		}
 	}

@@ -12,6 +12,12 @@ const LABEL: Record<string, string> = {
 };
 
 export function foldPlannerPhase(state: SessionState, event: WireEvent): SessionState {
+  if (event.code === "planner.approved") {
+    const selection = event.plannerSelection;
+    return selection && selection !== state.plannerApprovedSelection
+      ? { ...state, plannerApprovedSelection: selection }
+      : state;
+  }
   const wording = event.code ? LABEL[event.code] : undefined;
   if (!wording) return state;
   const text = t(wording, { model: event.modelRef ?? "" });

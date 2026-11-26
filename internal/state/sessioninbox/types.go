@@ -159,6 +159,7 @@ type PromptEnvelope struct {
 	Invocations          []StructuredInvocation `json:"invocations,omitempty"`
 	Format               string                 `json:"format,omitempty"`
 	WorkMode             string                 `json:"workMode,omitempty"`
+	PlannerSelection     string                 `json:"plannerSelection,omitempty"`
 	Attachments          []string               `json:"attachments,omitempty"`
 	AttachmentIdentities []string               `json:"attachmentIdentities,omitempty"`
 	Refs                 []RefSnapshot          `json:"refs,omitempty"`

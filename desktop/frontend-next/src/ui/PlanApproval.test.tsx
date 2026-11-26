@@ -19,7 +19,7 @@ describe("the plan-approval switch", () => {
     render(<PlanApproval port={p} />);
     const ask = await every();
     expect(ask.getAttribute("aria-checked")).toBe("true");
-    const why = screen.getByText("计划做好后要不要先给你看").getAttribute("title") ?? "";
+    const why = screen.getByText(/初始计划始终需要你批准/).getAttribute("title") ?? "";
     expect(why).toMatch(/工具批准、沙箱和拒绝规则照常生效/);
     expect(why).toMatch(/项目配置不能替你打开/);
     await userEvent.click(await never());
