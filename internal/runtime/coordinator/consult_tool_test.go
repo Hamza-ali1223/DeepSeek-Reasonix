@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"reasonix/internal/contract/event"
+	"reasonix/internal/contract/planmode"
 	"reasonix/internal/contract/provider"
 	"reasonix/internal/contract/tool"
 	"reasonix/internal/runtime/agent"
@@ -105,6 +106,69 @@ func TestCoordinatorConsultationHasHostOwnedPerTurnLimit(t *testing.T) {
 
 func TestConsultedPlanNeedsHostApprovalAndKeepsHostIdentity(t *testing.T) {
 	planner := &mockProvider{name: "planner", streams: append([][]provider.Chunk{{{Type: provider.ChunkText, Text: "initial advice"}, {Type: provider.ChunkDone}}}, submitPlanCall(e2ePlanArgs)...)}
+	coord, executor := newConsultationRun(planner)
+	approver := &recordingPlanApprover{allow: true}
+	coord.SetPlannerPlanApprover(approver)
+	if err := coord.Run(t.Context(), "task"); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	got := executor.PlanContract()
+	if !approver.called || got == nil || got.ID == "" || got.Revision != 1 || !got.ApprovedByUser {
+		t.Fatalf("approval=%+v plan=%+v, want approved host-identified revision 1", approver, got)
+	}
+}
+
+func TestConsultedPlanStillNeedsApprovalDuringOrdinaryPlanExecution(t *testing.T) {
+	planner := &mockProvider{name: "planner", streams: submitPlanCall(e2ePlanArgs)}
+	coord, executor := newConsultationRun(planner)
+	coord.plannerPolicy = func(context.Context, string) agent.PlannerDecision {
+		return agent.PlannerDecision{Route: agent.PlannerRouteExecutorOnly}
+	}
+	runtime := planmode.NewRuntime()
+	for _, action := range []planmode.Action{planmode.Enter, planmode.Submit, planmode.Start} {
+		if _, ok := runtime.Apply(action); !ok {
+			t.Fatalf("could not apply plan lifecycle action %v", action)
+		}
+	}
+	coord.AdoptPlanRuntime(runtime)
+	approver := &recordingPlanApprover{allow: true}
+	coord.SetPlannerPlanApprover(approver)
+	if err := coord.Run(t.Context(), "continue the approved plan"); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if got := executor.PlanContract(); !approver.called || got == nil || !got.ApprovedByUser {
+		t.Fatalf("approval=%+v plan=%+v, want a host-approved plan", approver, got)
+	}
+}
+
+func TestConsultedRevisionPreservesPlanApprovalPolicy(t *testing.T) {
+	const initial = `{"objective":"fix cache","steps":[{"id":"s1","title":"fix the key"}]}`
+	for _, tc := range []struct {
+		name, steps, wantTitle string
+		wantApproval           bool
+		wantRevision           int
+	}{
+		{"in-scope edit", `[{"id":"s1","title":"fix the namespaced key"}]`, "fix the namespaced key", false, 2},
+		{"rejected expansion", `[{"id":"s1","title":"fix the namespaced key"},{"id":"s2","title":"replace cache storage"}]`, "fix the key", true, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			revision := `{"objective":"fix cache","steps":` + tc.steps + `}`
+			planner := &mockProvider{name: "planner", streams: append(submitPlanCall(initial), submitPlanCall(revision)...)}
+			coord, executor := newConsultationRun(planner)
+			approver := &recordingPlanApprover{}
+			coord.SetPlannerPlanApprover(approver)
+			if err := coord.Run(t.Context(), "task"); err != nil {
+				t.Fatalf("Run: %v", err)
+			}
+			got := executor.PlanContract()
+			if approver.called != tc.wantApproval || got == nil || got.Revision != tc.wantRevision || len(got.Steps) != 1 || got.Steps[0].Title != tc.wantTitle {
+				t.Fatalf("approval=%v plan=%+v, want approval=%v, revision=%d, step=%q", approver.called, got, tc.wantApproval, tc.wantRevision, tc.wantTitle)
+			}
+		})
+	}
+}
+
+func newConsultationRun(planner *mockProvider) (*Coordinator, *agent.Agent) {
 	exec := &mockProvider{name: "executor", streams: [][]provider.Chunk{
 		{{Type: provider.ChunkToolCall, ToolCall: &provider.ToolCall{ID: "consult", Name: ConsultationToolName, Arguments: `{"question":"propose a revised plan"}`}}, {Type: provider.ChunkDone}},
 		{{Type: provider.ChunkText, Text: "Done"}, {Type: provider.ChunkDone}},
@@ -113,13 +177,5 @@ func TestConsultedPlanNeedsHostApprovalAndKeepsHostIdentity(t *testing.T) {
 	executor := agent.New(exec, reg, sessionstore.NewSession("executor"), agent.Options{}, event.Discard)
 	coord := NewCoordinator(planner, sessionstore.NewSession("planner"), nil, agent.PlannerToolRegistry(tool.NewRegistry(), nil, nil), agent.Options{MaxSteps: 4}, executor, 0, event.Discard, nil)
 	reg.Add(NewConsultationTool(coord))
-	approver := &recordingPlanApprover{allow: true}
-	coord.SetPlannerPlanApprover(approver)
-	if err := coord.Run(context.Background(), "task"); err != nil {
-		t.Fatalf("Run: %v", err)
-	}
-	got := executor.PlanContract()
-	if !approver.called || got == nil || got.ID == "" || got.Revision != 1 || !got.ApprovedByUser {
-		t.Fatalf("approval=%+v plan=%+v, want approved host-identified revision 1", approver, got)
-	}
+	return coord, executor
 }
