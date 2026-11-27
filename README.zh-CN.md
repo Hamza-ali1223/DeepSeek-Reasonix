@@ -106,7 +106,9 @@ Reasonix 分为两条版本线，调整的原因见[版本路线公告](https://
 | 版本线 | 分支 | 状态 | 获取方式 |
 | --- | --- | --- | --- |
 | **Reasonix 2.x** | `studio`（当前分支） | 活跃开发（本分支） | [分支发布页](https://github.com/Hamza-ali1223/DeepSeek-Reasonix/releases) |
-| **Reasonix 1.x** | [`main-v2`](https://github.com/esengine/DeepSeek-Reasonix/tree/main-v2) | 维护 / 稳定 | `npm i -g reasonix` · [桌面端下载](https://reasonix.io/?download=desktop#start) |
+| **Reasonix 1.x** | [`main-v2`](https://github.com/esengine/DeepSeek-Reasonix/tree/main-v2) | 由上游维护；本分支不维护 | `npm i -g reasonix` · [桌面端下载](https://reasonix.io/?download=desktop#start) |
+
+本分支仅维护 Studio 2.x，不维护 1.x，也不会运行其 nightly 监控。若要在本仓库恢复 1.x 支持，请先阅读[1.x 维护契约](./docs/fork_docs/V1_MAINTENANCE_CONTRACT.md)。
 
 - **想要稳定**：继续使用 1.x。它会持续收到 Bug 修复、Provider / API 兼容、
   更新器和安全修复，但不再扩展核心架构。
