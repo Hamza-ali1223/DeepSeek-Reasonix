@@ -85,6 +85,10 @@ issues are no longer triaged and no further upstream releases will be made.
 - **Versioning is separate.** Fork releases are `fork-vX.Y.Z`, never upstream's
   `studio-v*`, so the two lines cannot collide. Larger steps are marked in the pull
   request before merging; a small change can be held back with the same label line.
+- **This fork maintains Studio 2.x only.** Reasonix 1.x remains available from
+  upstream, but this fork does not maintain that line or run its nightly monitors.
+  See the [1.x maintenance contract](./docs/fork_docs/V1_MAINTENANCE_CONTRACT.md)
+  before restoring 1.x support here.
 - **Issues and pull requests are welcome,** though there is no promised response time.
 
 Reasonix is MIT-licensed, and this fork keeps that licence.
@@ -132,7 +136,7 @@ Reasonix ships on two lines. See the [version roadmap announcement](https://gith
 | Line | Branch | Status | Get it |
 | --- | --- | --- | --- |
 | **Reasonix 2.x** | `studio` (this branch) | Active development (this fork) | [Fork releases](https://github.com/Hamza-ali1223/DeepSeek-Reasonix/releases) |
-| **Reasonix 1.x** | [`main-v2`](https://github.com/esengine/DeepSeek-Reasonix/tree/main-v2) | Maintenance / stable | `npm i -g reasonix` · [desktop download](https://reasonix.io/?download=desktop#start) |
+| **Reasonix 1.x** | [`main-v2`](https://github.com/esengine/DeepSeek-Reasonix/tree/main-v2) | Upstream-maintained; not maintained by this fork | `npm i -g reasonix` · [desktop download](https://reasonix.io/?download=desktop#start) |
 
 - **Want something stable?** Stay on 1.x. It keeps receiving bug fixes,
   provider/API compatibility, updater and security fixes; its core architecture
