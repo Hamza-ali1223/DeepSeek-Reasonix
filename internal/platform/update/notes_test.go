@@ -57,7 +57,7 @@ func TestNotesURLIsBuiltFromAReleaseVersionOnly(t *testing.T) {
 
 func TestSecondReadComesFromDiskWithoutTheNetwork(t *testing.T) {
 	c, hits := mirror(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/releases/download/fork-v2.31.0/release-notes.txt" {
+		if r.URL.Path != "/Hamza-ali1223/DeepSeek-Reasonix/releases/download/fork-v2.31.0/release-notes.txt" {
 			t.Errorf("fetched %s", r.URL.Path)
 		}
 		_, _ = w.Write([]byte("# notes\n- a\n"))

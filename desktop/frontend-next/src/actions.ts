@@ -570,6 +570,7 @@ export const ACTIONS: UIAction[] = [
   { id: "versions.notes-retry", kind: "repeatable", target: "none", proof: "interaction" },
   { id: "versions.notes-close", kind: "view", target: "none", proof: "interaction" },
   { id: "versions.full-installer", kind: "repeatable", target: "none", proof: "interaction" },
+  { id: "versions.manual-download", kind: "repeatable", target: "none", proof: "interaction" },
   { id: "versions.notes-lang", kind: "view", target: "none", proof: "interaction" },
   { id: "shell.executor", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
   { id: "shell.custom-path", kind: "kernel-mutation", target: "none", proof: "authority-effect" },
