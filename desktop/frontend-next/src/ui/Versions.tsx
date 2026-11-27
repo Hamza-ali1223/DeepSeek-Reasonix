@@ -427,7 +427,7 @@ export function Versions({ port }: { port: Port }) {
               )
             ) : (
               !v.current && (
-                <a className="sa lnk" data-action="versions.manual-download" href={releasePage(v.version)} target="_blank" rel="noreferrer noopener" onClick={(e) => openInstallerPage(e, port, v.version)}>
+                <a className="sa lnk" data-action="versions.full-installer" href={releasePage(v.version)} target="_blank" rel="noreferrer noopener" onClick={(e) => openInstallerPage(e, port, v.version)}>
                   {t("about.open_release_downloads")}
                 </a>
               )
