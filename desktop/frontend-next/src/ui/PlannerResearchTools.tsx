@@ -25,16 +25,15 @@ export function PlannerResearchTools({ builtins, servers, selected, custom, busy
   const matches = (name: string, description?: string) => !query || `${name} ${description ?? ""}`.toLowerCase().includes(query);
   const toggle = (id: string, checked: boolean) => onChange(checked ? [...new Set([...selected, id])] : selected.filter((item) => item !== id));
 
-  return <div className="planner-tools" data-action="planner.tools">
+  return <div className="planner-tools">
     <div className="planner-tools-top">
-      <div><h4>{t("settings.planner_tools")}</h4><p>{t("settings.planner_tools_hint")}</p></div>
       <SegChoice label={t("settings.planner_tools_mode")} value={custom ? "custom" : "default"}
         options={[["default", t("settings.planner_tools_default")], ["custom", t("settings.planner_tools_custom")]]}
         disabled={busy} action="planner.tools-mode" onPick={(value) => onMode(value === "custom")} />
     </div>
     {custom && <>
       <label className="planner-tools-search"><span className="sr-only">{t("settings.planner_tools_search")}</span>
-        <input type="search" value={search} placeholder={t("settings.planner_tools_search")} disabled={busy} onChange={(event) => setSearch(event.target.value)} />
+        <input type="search" data-action="planner.tools-search" value={search} placeholder={t("settings.planner_tools_search")} disabled={busy} onChange={(event) => setSearch(event.target.value)} />
       </label>
       {catalogError && <p className="planner-tools-note" role="status">{t("settings.planner_tools_catalog_unavailable", { detail: catalogError })}</p>}
       <div className="planner-tools-list">
@@ -59,7 +58,7 @@ function Tool({ id, name, description, selected, disabled, onChange }: {
   id: string; name: string; description?: string; selected: boolean; disabled: boolean;
   onChange: (id: string, checked: boolean) => void;
 }) {
-  return <label className="planner-tool"><input type="checkbox" checked={selected} disabled={disabled} onChange={(event) => onChange(id, event.target.checked)} />
+  return <label className="planner-tool"><input type="checkbox" data-action="planner.tools-toggle" checked={selected} disabled={disabled} onChange={(event) => onChange(id, event.target.checked)} />
     <span><strong>{name}</strong>{description && <small>{description}</small>}</span>
   </label>;
 }

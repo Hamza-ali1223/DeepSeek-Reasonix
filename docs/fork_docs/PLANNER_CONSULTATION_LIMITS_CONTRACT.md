@@ -27,16 +27,16 @@ planning route and no planner research budget.
 
 | Bound | Value | Where |
 | --- | --- | --- |
-| Deadline | 90 seconds, a literal | `internal/runtime/coordinator/consultation.go` |
-| Per-turn limit, host clamp | 8 | `SetConsultationLimit` |
-| Per-turn limit, save endpoint | 8 | `internal/frontend/serve/planner_settings.go` |
-| Per-turn limit, Studio input | 8 | `desktop/frontend-next/src/ui/PlannerSettings.tsx` |
+| Deadline | 90 seconds by default; configurable from 15 through 600 seconds | `internal/contract/config/planner_budget.go`, `internal/runtime/coordinator/consultation.go` |
+| Per-turn limit, host clamp | 20 | `SetConsultationLimit` |
+| Per-turn limit, save endpoint | 20 | `internal/frontend/serve/planner_settings.go` |
+| Per-turn limit, Studio input | 20 | `desktop/frontend-next/src/ui/PlannerSettings.tsx` |
 
 ## Fences
 
 | Fence | Protects | Disposition |
 | --- | --- | --- |
-| The per-turn limit clamp | Cost control on a call that runs a second model | Keep; widen 8 to 20 |
+| The per-turn limit clamp | Cost control on a call that runs a second model | Keep; maximum 20 |
 | The deadline | No unbounded wait inside a turn | Keep; make it a setting |
 | The typed refusal codes | A caller can tell the three causes apart | Keep |
 | Parent cancellation | The user can always stop | Keep; a longer window MUST NOT defeat it |

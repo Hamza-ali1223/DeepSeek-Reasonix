@@ -7,6 +7,7 @@ import type { ModelEntry } from "../port/model";
 import type { AgentPort } from "../port/port";
 import { PlannerResearchTools, plannerMcpServers } from "./PlannerResearchTools";
 import { usePresetLeave } from "./PresetLeave";
+import { Group } from "./Group";
 import { SectionCard } from "./SectionCard";
 import { PillButton, SettingRow } from "./SettingRow";
 import { protocolDetail } from "./vendors";
@@ -113,8 +114,10 @@ export function PlannerSettings({ port, models = [] }: { port: AgentPort; models
           onChange={(e) => setSettings({ ...settings, researchRounds: Number(e.target.value) })} />
         <Unit label={t("settings.planner_research_rounds_unit")} />
       </SettingRow>
-      <PlannerResearchTools builtins={builtins} servers={mcp} selected={customTools} custom={custom}
-        busy={busy} catalogError={catalogError} onMode={pickCustom} onChange={setCustomTools} />
+      <Group id="planner-tools" title={t("settings.planner_tools")} hint={t("settings.planner_tools_hint")}>
+        <PlannerResearchTools builtins={builtins} servers={mcp} selected={customTools} custom={custom}
+          busy={busy} catalogError={catalogError} onMode={pickCustom} onChange={setCustomTools} />
+      </Group>
       </SectionCard>
       <SectionCard title={t("settings.planner_consultations_section")}>
       <SettingRow id="planner-consultation" title={t("settings.planner_consultation")} desc={t("settings.planner_consultation_hint")}>

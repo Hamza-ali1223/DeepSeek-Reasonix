@@ -515,10 +515,8 @@
 .prefs-card .grp .lrow:last-of-type { border-bottom: 0; }
 
 .planner-model-value { color: var(--text); font: var(--w-med) var(--fs-ui)/1.4 var(--ui); overflow-wrap: anywhere; }
-.planner-tools { padding: 10px 0 4px; border-top: 1px solid var(--hair); }
-.planner-tools-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; margin-bottom: 10px; }
-.planner-tools-top h4 { margin: 0; color: var(--text); font: var(--w-med) var(--fs-ui)/1.4 var(--ui); }
-.planner-tools-top p { margin: 3px 0 0; color: var(--faint); font: var(--w-reg) var(--fs-meta)/1.5 var(--ui); }
+.planner-tools { padding-bottom: 4px; }
+.planner-tools-top { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px 16px; margin-bottom: 10px; }
 .planner-tools-search { display: block; margin: 8px 0; }
 .planner-tools-search input { box-sizing: border-box; width: 100%; height: 32px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); color: var(--text); font: var(--w-reg) var(--fs-ui) var(--ui); }
 .planner-tools-list { max-height: 300px; overflow: auto; padding: 8px 10px; border: 1px solid var(--hair); border-radius: var(--r-md); background: var(--page); }

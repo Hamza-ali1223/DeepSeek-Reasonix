@@ -47,7 +47,7 @@ reviewed: 2026-11-22
 | API adapter | MUST follow each selected model's provider configuration, including Responses, Chat Completions, and Anthropic. |
 | Collaboration defaults | MUST round-trip through Studio and TOML. Studio MUST show when a setting takes effect. |
 | `agent.planner_consultation` | MUST default off. Enabling it opts the next eligible session into the fixed consultation tool schema. Initial explicit planning remains available without the tool. |
-| `agent.planner_consultation_limit` | MUST default to one consultation per executor turn. Supported values are 1 through 8. |
+| `agent.planner_consultation_limit` | MUST default to one consultation per executor turn. Supported values are 1 through 20. |
 | `agent.planner_tools` | MUST accept research tool names, `mcp-server:<server>`, or `mcp-tool:<server>/<tool>` in the user configuration. An empty list MUST keep the existing planner policy. |
 
 1. Each role MUST keep separate history, provider client, and continuation state. A handoff MUST transfer a structured plan or answer with the evidence needed by the recipient.
