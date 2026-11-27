@@ -24,7 +24,7 @@ afterEach(() => { cleanup(); resetUpdateWatch(); vi.useRealTimers(); vi.restoreA
 
 async function newerRelease() {
   vi.useFakeTimers();
-  const hub = { current: "2.57.0", pinned: "", stalePin: false, latest: "2.58.0", newer: true, versions: [] };
+  const hub = { current: "2.57.0", pinned: "", stalePin: false, latest: "2.58.0", newer: true, canInstall: true, versions: [] };
   const stop = startUpdateWatch({ updateMode: () => Promise.resolve("notify" as const), versions: () => Promise.resolve(hub) });
   await act(async () => { await vi.advanceTimersByTimeAsync(61_000); });
   vi.useRealTimers();
@@ -33,7 +33,7 @@ async function newerRelease() {
 
 async function mount() {
   const hub = new MockHub();
-  hub.machinePort().versions = async () => ({ current: "2.57.0", pinned: "", stalePin: false, latest: "2.58.0", newer: true, versions: [{ version: "2.58.0", tag: "studio-v2.58.0", publishedAt: "2026-11-08", hasNotes: false, older: false, current: false }] });
+  hub.machinePort().versions = async () => ({ current: "2.57.0", pinned: "", stalePin: false, latest: "2.58.0", newer: true, canInstall: true, versions: [{ version: "2.58.0", tag: "studio-v2.58.0", publishedAt: "2026-11-08", hasNotes: false, older: false, current: false }] });
   const runtime = await hub.open({ root: "~/projects/my-website", sessionPath: "/sessions/site.jsonl" });
   for (const rt of await hub.runtimes()) {
     const port = hub.portFor(rt);

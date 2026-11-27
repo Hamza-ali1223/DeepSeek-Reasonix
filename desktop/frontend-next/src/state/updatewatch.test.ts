@@ -3,7 +3,7 @@ import type { UpdateMode, VersionHub } from "../port/version";
 import { readUpdateAvailable, resetUpdateWatch, startUpdateWatch } from "./updatewatch";
 
 const hub = (over: Partial<VersionHub> = {}): VersionHub => ({
-  current: "2.20.0", pinned: "", stalePin: false, latest: "2.21.0", newer: true, versions: [], ...over,
+  current: "2.20.0", pinned: "", stalePin: false, latest: "2.21.0", newer: true, canInstall: true, versions: [], ...over,
 });
 
 function port(mode: UpdateMode, read: () => Promise<VersionHub> = () => Promise.resolve(hub())) {

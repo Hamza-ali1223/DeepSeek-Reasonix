@@ -2,7 +2,7 @@
 owner: @Hamza-ali1223
 backup: @SivanCola
 status: active
-reviewed: 2026-11-17
+reviewed: 2026-11-27
 ---
 
 # Fork state
@@ -19,28 +19,31 @@ Every push to `studio` tags `fork-v<MAJOR>.<MINOR>.<PATCH>` and publishes a full
 
 | Artifact | Contents |
 | --- | --- |
-| `reasonix-windows-amd64.exe`, `reasonix-windows-arm64.exe` | CLI for Windows, cross-built with `CGO_ENABLED=0` |
-| `ReasonixStudio-windows-amd64-installer.exe`, `ReasonixStudio-windows-amd64.zip` | Studio for Windows, installer and portable |
-| `SHA256SUMS` | Digests over every `.exe` and `.zip` in the release |
+| `reasonix-windows-*`, `reasonix-linux-*` | CLI for Windows and Linux amd64/arm64 |
+| `ReasonixStudio-windows-amd64-installer.exe`, `ReasonixStudio-windows-amd64.zip` | Studio for Windows, NSIS installer and portable ZIP |
+| `ReasonixStudio-linux-*` | Studio Debian, RPM and AppImage packages for amd64/arm64 |
+| `SHA256SUMS` | Digests over the published CLI binaries and Studio packages |
 
-1. macOS and Linux are built from source. No artifact is published for either.
-2. The Windows binaries are unsigned (`.github/workflows/fork-release.yml`).
-3. The bump is a patch by default; `release:minor` and `release:major` on the merged pull size it, and
+1. The in-app updater supports only Windows amd64 NSIS installs and Linux amd64 `reasonix-studio` Debian installs.
+   These packages are signed with the fork's dedicated Minisign key. RPM, AppImage, ZIP, other architectures and
+   macOS remain manual; see `STUDIO_UPDATE_CONTRACT.md`.
+2. CLI binaries remain unsigned (`.github/workflows/fork-release.yml`).
+3. Existing installations need one manual install of an updater-enabled fork release before signed updates work.
+4. The bump is a patch by default; `release:minor` and `release:major` on the merged pull size it, and
    `release:ships-with-next-release` holds a small change for the next release instead of cutting its own.
 
 ## 2. Known broken
 
-Both features that reach a release host still name upstream, so neither can find this fork's releases.
+The Studio updater now reads the fork catalog. The CLI release lookup, CLI install hint and feedback venue still name upstream.
 
 | Symptom | Cause | Source |
 | --- | --- | --- |
-| The in-app update check never offers a newer build | `StudioMirror = "https://dl.reasonix.io"` | `internal/platform/update/manifest.go:35` |
 | `reasonix upgrade` lists upstream's releases, not `fork-v*` | `ghOwner = "esengine"` | `internal/frontend/cli/upgrade.go:33`, `internal/platform/releaseasset/cli.go:28` |
 | The CLI install hint links upstream's release page | text only | `internal/base/i18n/messages_en.go:749`, `messages_zh.go:749`, `messages_zh_tw.go:672` |
 | `/feedback` names upstream's repository as the public venue | text only | `internal/session/control/feedback_command.go:30` |
 
-No test catches either failure: each one runs against a fake server or a stub catalog, so a check that reaches nothing
-still passes.
+The Studio updater implementation is governed by `STUDIO_UPDATE_CONTRACT.md`; its release catalog, signatures,
+rollback entries, notes and install eligibility must stay aligned.
 
 ## 3. Open work
 

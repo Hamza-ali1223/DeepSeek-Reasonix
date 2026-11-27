@@ -63,7 +63,7 @@ it("marks the settings entry once a newer release was found, and not before", as
   expect(screen.queryByText(/有新版本/)).toBeNull();
   const stop = startUpdateWatch({
     updateMode: () => Promise.resolve("notify" as Mode),
-    versions: () => Promise.resolve({ current: "2.20.0", pinned: "", stalePin: false, latest: "2.21.0", newer: true, versions: [] }),
+    versions: () => Promise.resolve({ current: "2.20.0", pinned: "", stalePin: false, latest: "2.21.0", newer: true, canInstall: true, versions: [] }),
   });
   await act(async () => { await vi.advanceTimersByTimeAsync(70_000); });
   expect(screen.getByText("有新版本 2.21.0，在设置的「版本」里查看")).toBeTruthy();

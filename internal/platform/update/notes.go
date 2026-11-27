@@ -51,12 +51,17 @@ type VersionNotes struct {
 	Cached   bool   `json:"cached"`
 }
 
-var releaseVersion = regexp.MustCompile(`^v?([0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z][0-9A-Za-z.]*)?)$`)
+var (
+	releaseVersion       = regexp.MustCompile(`^v?([0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z][0-9A-Za-z.]*)?)$`)
+	releaseNotesAssetURL = regexp.MustCompile(`^https://github\.com/Hamza-ali1223/DeepSeek-Reasonix/releases/download/fork-v[0-9]+\.[0-9]+\.[0-9]+/release-notes\.txt$`)
+)
 
 // notesURL is where a release's notes live. It is built from a validated
-// version and the mirror constant, never from the catalog: the catalog only
-// says whether notes exist, so it cannot aim this fetch anywhere.
-func notesURL(v string) string { return StudioMirror + "/studio/notes/" + v + ".md" }
+// version and the fixed fork repository, never from the catalog: the catalog
+// only says whether notes exist, so it cannot aim this fetch anywhere.
+func notesURL(v string) string {
+	return "https://github.com/Hamza-ali1223/DeepSeek-Reasonix/releases/download/fork-v" + v + "/release-notes.txt"
+}
 
 func notesVersion(version string) (string, error) {
 	m := releaseVersion.FindStringSubmatch(strings.TrimSpace(version))
@@ -109,7 +114,7 @@ func ReadNotes(ctx context.Context, in Install, version string, retry bool) (Ver
 	}
 	dir := ""
 	if root := config.CacheDir(); root != "" {
-		dir = filepath.Join(root, "release-notes")
+		dir = filepath.Join(root, "release-notes", "fork-studio")
 	}
 	return sharedNotes.read(ctx, notesRequest{dir: dir, client: client, userAgent: UserAgent(in.Version), retry: retry}, version)
 }
@@ -204,8 +209,8 @@ func fetchNotes(ctx context.Context, c *http.Client, url, userAgent string) (str
 		return "", ErrNotesAbsent
 	case resp.StatusCode != http.StatusOK:
 		return "", fmt.Errorf("%w: %s", ErrNotesUnreachable, resp.Status)
-	case !documentType(resp.Header.Get("Content-Type")):
-		return "", fmt.Errorf("%w: the mirror answered with content type %q", ErrNotesUnreachable, resp.Header.Get("Content-Type"))
+	case !documentType(url, resp.Header.Get("Content-Type")):
+		return "", fmt.Errorf("%w: the fork release answered with content type %q", ErrNotesUnreachable, resp.Header.Get("Content-Type"))
 	case resp.ContentLength > NotesMaxBytes:
 		return "", ErrNotesTooLarge
 	}
@@ -223,14 +228,31 @@ func fetchNotes(ctx context.Context, c *http.Client, url, userAgent string) (str
 }
 
 // documentType judges the declared type, never the body: an error page served
-// with a 200 must not be kept as a release's notes.
-func documentType(header string) bool {
+// with a 200 must not be kept as a release's notes. GitHub serves release
+// assets as application/octet-stream even when the asset is plain text, so that
+// type is accepted only for the fixed, tag-pinned fork notes URL. usableNotes
+// still rejects HTML and invalid UTF-8 before the response is cached.
+func documentType(rawURL, header string) bool {
 	typ, _, err := mime.ParseMediaType(header)
-	return err == nil && (typ == "text/markdown" || typ == "text/plain")
+	if err != nil {
+		return false
+	}
+	if typ == "text/markdown" || typ == "text/plain" {
+		return true
+	}
+	if typ != "application/octet-stream" {
+		return false
+	}
+	return releaseNotesAssetURL.MatchString(rawURL)
 }
 
 func usableNotes(b []byte) bool {
-	return len(strings.TrimSpace(string(b))) > 0 && utf8.Valid(b)
+	trimmed := strings.TrimSpace(string(b))
+	if trimmed == "" || !utf8.Valid(b) {
+		return false
+	}
+	lower := strings.ToLower(trimmed)
+	return !strings.HasPrefix(lower, "<!doctype html") && !strings.HasPrefix(lower, "<html")
 }
 
 // A file that fails the same test as a fresh response is a miss, so a torn or

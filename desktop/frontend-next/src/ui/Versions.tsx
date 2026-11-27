@@ -265,6 +265,7 @@ export function Versions({ port }: { port: Port }) {
   const moving = progress !== null && MOVING.has(progress.phase) ? progress.version : "";
   const ready = progress?.phase === "ready" ? progress.version : "";
   const locked = busy || starting !== "" || moving !== "";
+  const canInstall = hub.canInstall === true;
   const readyOlder = ready !== "" && list.some((v) => v.version === ready && v.older);
   const past = list.filter((v) => v.older && !v.current);
   const held = new Set([moving, ready, hub.pinned, openNotes].filter(Boolean));
@@ -327,7 +328,7 @@ export function Versions({ port }: { port: Port }) {
       {!hub.err && hub.newer && !hub.pinned && !hub.withdrawn && !ready && !moving && !failure && (
         <div className="find" data-lvl="ok">
           <span className="t">{t("about.v_is_out", { v: hub.latest })}</span>
-          <span className="why">{t("about.install_it_from_the_row")}</span>
+          <span className="why">{t(canInstall ? "about.install_it_from_the_row" : "about.download_the_manual_release")}</span>
         </div>
       )}
       {ready && later !== ready && (
@@ -418,11 +419,17 @@ export function Versions({ port }: { port: Port }) {
               <button className="sa lnk" data-keep="" data-action="versions.restart" onClick={() => { setLater(""); void restart(v.version, false); }}>
                 {t("about.restart_to_finish")}
               </button>
-            ) : (
+            ) : canInstall ? (
               !v.current && (
                 <button className="sa lnk" data-action="versions.activate" onClick={() => goTo(v.version)} disabled={locked}>
                   {t(v.older ? "about.roll_back_to_this_version" : "about.install_this_version")}
                 </button>
+              )
+            ) : (
+              !v.current && (
+                <a className="sa lnk" data-action="versions.manual-download" href={releasePage(v.version)} target="_blank" rel="noreferrer noopener" onClick={(e) => openInstallerPage(e, port, v.version)}>
+                  {t("about.open_release_downloads")}
+                </a>
               )
             )}
             {v.current && !hub.pinned && (

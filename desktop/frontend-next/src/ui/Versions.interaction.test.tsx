@@ -14,6 +14,7 @@ const hub: VersionHub = {
   stalePin: false,
   latest: "2.21.0",
   newer: true,
+  canInstall: true,
   versions: [
     { version: "2.21.0", tag: "studio-v2.21.0", publishedAt: "", hasNotes: false, current: false, older: false },
     { version: "2.20.0", tag: "studio-v2.20.0", publishedAt: "", hasNotes: false, current: true, older: false },
@@ -102,7 +103,7 @@ describe("the version panel", () => {
     const link = await screen.findByRole("link", { name: "下载完整安装包" });
     const notPrevented = fireEvent.click(link);
     expect(notPrevented).toBe(false);
-    expect(openExternal).toHaveBeenCalledWith("https://github.com/esengine/DeepSeek-Reasonix/releases/tag/studio-v2.21.0");
+    expect(openExternal).toHaveBeenCalledWith("https://github.com/Hamza-ali1223/DeepSeek-Reasonix/releases/tag/fork-v2.21.0");
   });
 
   it("explains a move that did not land by its code, with the way out", async () => {
@@ -110,7 +111,7 @@ describe("the version panel", () => {
     render(<Versions port={port} />);
     expect(await screen.findByText("上次更新到 2.21.0 没有生效")).toBeTruthy();
     const link = screen.getByRole("link", { name: "下载完整安装包" });
-    expect(link.getAttribute("href")).toBe("https://github.com/esengine/DeepSeek-Reasonix/releases/tag/studio-v2.21.0");
+    expect(link.getAttribute("href")).toBe("https://github.com/Hamza-ali1223/DeepSeek-Reasonix/releases/tag/fork-v2.21.0");
     expect(screen.getByText("update: set aside app.exe: access denied")).toBeTruthy();
   });
 });
@@ -122,6 +123,7 @@ describe("the version list's history", () => {
     stalePin: false,
     latest: "2.20.0",
     newer: false,
+    canInstall: true,
     versions: [
       { version: "2.20.0", tag: "studio-v2.20.0", publishedAt: "", current: true, older: false, hasNotes: false },
       ...["2.19.0", "2.18.0", "2.17.0", "2.16.0", "2.15.0", "2.14.0"].map((version) => ({ version, tag: `studio-v${version}`, publishedAt: "", current: false, older: true, hasNotes: false })),

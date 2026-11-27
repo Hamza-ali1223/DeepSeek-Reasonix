@@ -11,7 +11,7 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => { cleanup(); resetUpdateWatch(); vi.useRealTimers(); });
 
 const hub = (newer: boolean): VersionHub => ({
-  current: "2.20.0", pinned: "", stalePin: false, latest: "2.21.0", newer,
+  current: "2.20.0", pinned: "", stalePin: false, latest: "2.21.0", newer, canInstall: true,
   versions: [{ version: "2.21.0", tag: "studio-v2.21.0", publishedAt: "", hasNotes: false, current: false, older: false }],
 });
 const idle: UpdateProgress = { version: "", phase: "idle", received: 0, total: 0 };

@@ -89,7 +89,9 @@ func studioInstall(shell shellIdentity) *update.Install {
 	if strings.TrimSpace(shell.version) == "" {
 		return nil
 	}
-	return &update.Install{Version: shell.version, Layout: update.At(shell.exe, update.StudioLine())}
+	line := update.StudioLine()
+	layout := update.At(shell.exe, line)
+	return &update.Install{Version: shell.version, Layout: layout, CanInstall: update.AutoUpdateEligible(layout, line)}
 }
 
 // studioUpdateHost is the capability this kernel serves installs through, and

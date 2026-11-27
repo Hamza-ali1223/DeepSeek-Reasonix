@@ -21,7 +21,7 @@ async function waiting(version = "2.21.0") {
   const feeds = new Set<(p: never) => void>();
   const stop = startUpdateWatch({
     updateMode: () => Promise.resolve("download" as UpdateMode),
-    versions: () => Promise.resolve({ current: "2.20.0", pinned: "", stalePin: false, latest: version, newer: true, versions: [] }),
+    versions: () => Promise.resolve({ current: "2.20.0", pinned: "", stalePin: false, latest: version, newer: true, canInstall: true, versions: [] }),
     goToVersion: () => Promise.resolve(),
     onUpdateProgress: (cb) => { feeds.add(cb as never); queueMicrotask(() => cb({ version, phase: "ready", received: 0, total: 0 })); return () => void feeds.delete(cb as never); },
   });

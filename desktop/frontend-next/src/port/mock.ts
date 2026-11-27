@@ -178,7 +178,7 @@ export class MockPort extends MockWorkspace implements AgentPort {
   }
 
   async versions(_refresh?: boolean): Promise<VersionHub> {
-    return { current: "dev", pinned: "", stalePin: false, latest: "", newer: false, versions: [] };
+    return { current: "dev", pinned: "", stalePin: false, latest: "", newer: false, canInstall: false, versions: [] };
   }
 
   private welcomed = true;
