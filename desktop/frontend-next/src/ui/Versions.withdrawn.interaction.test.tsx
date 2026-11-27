@@ -15,6 +15,7 @@ const pulled: VersionHub = {
   stalePin: false,
   latest: "2.37.0",
   newer: true,
+  canInstall: true,
   versions: [row("2.37.0", false), row("2.36.0", true)],
   withdrawn: { version: "2.36.0", reason: "blank window on a fresh folder" },
 };

@@ -157,7 +157,7 @@ func TestANewMoveWaitsForTheCancelledOneToCleanUp(t *testing.T) {
 // ErrInstallInFlight until the cancelled move has cleaned up, then accepts.
 func TestStartInstallIsRefusedWhileCancelCleansUp(t *testing.T) {
 	c, _ := owned(t, "2.20.0")
-	install := update.Install{Layout: update.Layout{Root: testenv.TempDir(t)}}
+	install := update.Install{CanInstall: true, Layout: update.Layout{Root: testenv.TempDir(t)}}
 	if _, ok := c.install.begin("2.21.0"); !ok {
 		t.Fatal("begin refused an idle slot")
 	}

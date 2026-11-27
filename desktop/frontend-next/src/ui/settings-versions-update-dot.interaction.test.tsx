@@ -18,7 +18,7 @@ const settings = (port: MockPort) => (
 
 const watch = async (newer: boolean) => {
   vi.useFakeTimers();
-  const hub = { current: "2.20.0", pinned: "", stalePin: false, latest: "2.21.0", newer, versions: [] };
+  const hub = { current: "2.20.0", pinned: "", stalePin: false, latest: "2.21.0", newer, canInstall: true, versions: [] };
   const stop = startUpdateWatch({ updateMode: () => Promise.resolve("notify" as const), versions: () => Promise.resolve(hub) });
   await act(async () => { await vi.advanceTimersByTimeAsync(61_000); });
   vi.useRealTimers();

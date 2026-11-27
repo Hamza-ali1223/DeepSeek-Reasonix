@@ -30,11 +30,12 @@ const stallTimeout = 30 * time.Second
 // version, install this build somewhere the updater recognizes, wait, or start
 // the install again.
 var (
-	ErrNoTarget        = errors.New("appupdate: no version was named")
-	ErrUnknownInstall  = errors.New("appupdate: cannot tell where this build is installed")
-	ErrInstallInFlight = errors.New("appupdate: an install is already running")
-	ErrNothingReady    = errors.New("appupdate: no verified release is waiting for a restart")
-	ErrNothingToCancel = errors.New("appupdate: no download is running for that version")
+	ErrNoTarget           = errors.New("appupdate: no version was named")
+	ErrUnknownInstall     = errors.New("appupdate: cannot tell where this build is installed")
+	ErrUnsupportedInstall = errors.New("appupdate: this install format has no automatic update path")
+	ErrInstallInFlight    = errors.New("appupdate: an install is already running")
+	ErrNothingReady       = errors.New("appupdate: no verified release is waiting for a restart")
+	ErrNothingToCancel    = errors.New("appupdate: no download is running for that version")
 )
 
 // errInstallCancelled is attached as the cause when the person stops a
@@ -176,6 +177,9 @@ func (c *capability) StartInstall(install update.Install, target string) error {
 	}
 	if update.SameVersion(target, c.opts.Running) {
 		return nil
+	}
+	if !install.CanInstall {
+		return ErrUnsupportedInstall
 	}
 	if install.Layout.Root == "" {
 		return ErrUnknownInstall

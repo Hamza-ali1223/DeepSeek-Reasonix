@@ -184,10 +184,10 @@ class BenchPort extends MockPort {
   }
 
   async versions(): Promise<VersionHub> {
-    if (query.has("update")) return { current: "2.42.0", pinned: "", stalePin: false, latest: "2.43.0", newer: true, versions: [] };
+    if (query.has("update")) return { current: "2.42.0", pinned: "", stalePin: false, latest: "2.43.0", newer: true, canInstall: true, versions: [] };
     if (query.has("versionlayout")) {
       return {
-        current: "2.56.0", pinned: "", stalePin: false, latest: "2.57.0", newer: true,
+        current: "2.56.0", pinned: "", stalePin: false, latest: "2.57.0", newer: true, canInstall: true,
         versions: ["2.57.0", "2.56.1", "2.56.0", "2.55.0", "2.54.0", "2.53.1"].map((version, i) => ({
           version, tag: `studio-v${version}`, publishedAt: new Date(Date.now() - i * 86400000).toISOString(),
           hasNotes: i !== 4, current: i === 2, older: i > 2,
@@ -197,7 +197,7 @@ class BenchPort extends MockPort {
     if (!query.has("versions")) return super.versions();
     const names = ["2.38.0", "2.37.0", "2.36.0", "2.35.0", "2.34.0", "2.33.0", "2.32.0", "2.31.0", "2.30.0", "2.29.0"];
     return {
-      current: "2.37.0", pinned: "", stalePin: false, latest: "2.38.0", newer: true,
+      current: "2.37.0", pinned: "", stalePin: false, latest: "2.38.0", newer: true, canInstall: true,
       versions: names.map((version) => ({ version, tag: `studio-v${version}`, publishedAt: new Date(Date.now() - (38 - Number(version.split(".")[1])) * 864e5).toISOString(), current: version === "2.37.0", older: Number(version.split(".")[1]) < 37, hasNotes: false })),
     };
   }

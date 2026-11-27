@@ -3,7 +3,7 @@ import type { UpdateMode, UpdateProgress, VersionHub } from "../port/version";
 import { readUpdateAvailable, readUpdateReady, resetUpdateWatch, startUpdateWatch } from "./updatewatch";
 
 const hub = (over: Partial<VersionHub> = {}): VersionHub => ({
-  current: "2.20.0", pinned: "", stalePin: false, latest: "2.21.0", newer: true, versions: [], ...over,
+  current: "2.20.0", pinned: "", stalePin: false, latest: "2.21.0", newer: true, canInstall: true, versions: [], ...over,
 });
 const progress = (phase: UpdateProgress["phase"], version = "2.21.0"): UpdateProgress => ({ version, phase, received: 0, total: 0 });
 

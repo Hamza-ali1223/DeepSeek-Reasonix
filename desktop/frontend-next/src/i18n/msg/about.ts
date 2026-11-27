@@ -27,6 +27,8 @@ export const ABOUT: Messages = {
   "about.install_failed": { zh: "安装失败", en: "Install failed" },
   "about.install_it_from_the_row": { zh: "可在下方对应行安装。下载完成后会先问你，再重启。", en: "Install it from the row below. Once it has downloaded, Studio asks before restarting." },
   "about.install_this_version": { zh: "安装这个版本", en: "Install this version" },
+  "about.open_release_downloads": { zh: "打开发布页下载", en: "Open release downloads" },
+  "about.download_the_manual_release": { zh: "此安装类型需手动更新。请从下方对应版本的发布页下载。", en: "This install type updates manually. Open the matching release below to download it." },
   "about.installing": { zh: "正在安装…", en: "Installing…" },
   "about.installing_v_did_not_start": { zh: "{v} 的安装没能开始", en: "Installing {v} did not start" },
   "about.it_takes_effect_when_studio": { zh: "重启 Studio 后生效。重启会关闭当前窗口，稍后重启也可以。", en: "It takes effect when Studio restarts. Restarting closes this window; later works too." },

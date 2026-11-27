@@ -162,7 +162,7 @@ export function startUpdateWatch(port: UpdateWatchPort): UpdateWatch {
       const newer = hub.newer && !hub.pinned && !hub.withdrawn && hub.latest ? hub.latest : "";
       publish(newer);
       later(DAY);
-      if (mode === "download" && newer) track(newer);
+      if (mode === "download" && newer && hub.canInstall === true) track(newer);
     } catch {
       failures++;
       later(Math.min(DAY, RETRY_FIRST * 2 ** (failures - 1)));

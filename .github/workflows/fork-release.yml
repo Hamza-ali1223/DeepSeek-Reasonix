@@ -1,14 +1,13 @@
 name: Fork release (Windows and Linux)
 
-# Unsigned fork builds: the CLI for Windows and Linux, plus the Studio installer,
+# Fork builds: the CLI for Windows and Linux, plus the Studio installer,
 # portable zip and Linux packages for the supported architectures.
 #
 # Deliberately not wired to upstream's release machinery:
 #   - tags are `fork-v*` so this can never fire on upstream's `studio-v*` / `v*`;
-#   - no Apple, Certum, npm, Homebrew or R2 credentials are read, so the build
-#     needs no secrets at all;
-#   - the app's own updater cannot adopt a fork release: its catalog and
-#     minisign key are pinned to dl.reasonix.io in internal/platform/update.
+#   - no Apple, Certum, npm, Homebrew or R2 credentials are read;
+#   - the Studio updater signs only the Windows amd64 installer and Linux amd64
+#     Debian package with dedicated fork Minisign secrets.
 #
 # fork-auto-release.yml tags every push to studio and dispatches this workflow.
 
@@ -22,7 +21,7 @@ on:
         required: true
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: fork-release-${{ github.event.inputs.tag || github.ref_name }}
@@ -108,7 +107,7 @@ jobs:
           set -euo pipefail
           [[ "$TAG" =~ ^fork-v(.+)$ ]] || { echo "::error::fork release tag must be fork-v<version>, got: $TAG"; exit 1; }
           version="${BASH_REMATCH[1]}"
-          semver='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+          semver='^[0-9]+\.[0-9]+\.[0-9]+$'
           [[ "$version" =~ $semver ]] || { echo "::error::invalid fork release version: $version"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
@@ -197,8 +196,8 @@ jobs:
           # it in `Build the bundle` costs the whole SPA and kernel build.
           [[ "$TAG" =~ ^fork-v(.+)$ ]] || { echo "::error::fork release tag must be fork-v<version>, got: $TAG"; exit 1; }
           version="${BASH_REMATCH[1]}"
-          semver='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
-          [[ "$version" =~ $semver ]] || { echo "::error::version '$version' is not MAJOR.MINOR.PATCH[-PRERELEASE]; a leading dot, a missing digit, or '+build' metadata stops electron-builder"; exit 1; }
+          semver='^[0-9]+\.[0-9]+\.[0-9]+$'
+          [[ "$version" =~ $semver ]] || { echo "::error::version '$version' is not a stable MAJOR.MINOR.PATCH; prerelease and build metadata tags are not published by the fork release workflow"; exit 1; }
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "building Studio ${version}"
 
@@ -294,7 +293,7 @@ jobs:
           set -euo pipefail
           [[ "$TAG" =~ ^fork-v(.+)$ ]] || { echo "::error::fork release tag must be fork-v<version>, got: $TAG"; exit 1; }
           version="${BASH_REMATCH[1]}"
-          semver='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+          semver='^[0-9]+\.[0-9]+\.[0-9]+$'
           [[ "$version" =~ $semver ]] || { echo "::error::invalid fork release version: $version"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
@@ -362,9 +361,25 @@ jobs:
     name: Publish
     needs: [windows-cli, linux-cli, windows-studio, linux-studio]
     runs-on: ubuntu-latest
+    concurrency:
+      group: fork-release-publish
+      cancel-in-progress: false
+    permissions:
+      contents: write
     env:
       TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
       - uses: actions/download-artifact@v4
         with:
           path: assets
@@ -404,14 +419,158 @@ jobs:
           sha256sum -c SHA256SUMS
           cat SHA256SUMS
 
+      - name: Refuse to replace a published release
+        shell: bash
+        run: |
+          set -euo pipefail
+          error_file="$(mktemp)"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName >/dev/null 2>"$error_file"; then
+            echo "::error::release $TAG already exists; published release assets are immutable"
+            exit 1
+          elif ! grep -Eqi 'release not found|HTTP 404' "$error_file"; then
+            cat "$error_file" >&2
+            echo "::error::could not determine whether $TAG already has a release"
+            exit 1
+          fi
+          rm -f "$error_file"
+
+      - name: Sign updater packages
+        working-directory: desktop
+        env:
+          MINISIGN_PRIVATE_KEY: ${{ secrets.FORK_STUDIO_MINISIGN_PRIVATE_KEY }}
+          MINISIGN_PASSWORD: ${{ secrets.FORK_STUDIO_MINISIGN_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "$MINISIGN_PRIVATE_KEY" && -n "$MINISIGN_PASSWORD" ]] || {
+            echo "::error::fork Studio Minisign Actions secrets are missing"
+            exit 1
+          }
+          go run ./cmd/sign sign \
+            ../assets/ReasonixStudio-windows-amd64-installer.exe \
+            ../assets/ReasonixStudio-linux-amd64.deb
+          go run ./cmd/sign verify ../assets/ReasonixStudio-windows-amd64-installer.exe
+          go run ./cmd/sign verify ../assets/ReasonixStudio-linux-amd64.deb
+
+      - name: Generate the per-release updater manifest
+        working-directory: desktop
+        env:
+          VERSION: ${{ github.ref_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          HAS_R2: "false"
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${TAG#fork-v}"
+          mkdir -p ../assets/updater
+          cp ../assets/ReasonixStudio-windows-amd64-installer.exe ../assets/updater/
+          cp ../assets/ReasonixStudio-linux-amd64.deb ../assets/updater/
+          go run ./cmd/studio-manifest ../assets/updater "$version" "$TAG"
+          mv ../assets/updater/latest.json ../assets/latest.json
+
+      - name: Generate release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          previous_tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name)"
+          args=(-f "tag_name=$TAG")
+          args+=(-f "previous_tag_name=$previous_tag")
+          notes="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/releases/generate-notes" "${args[@]}" --jq .body)"
+          [[ -n "$notes" && "$notes" != null ]] || { echo "::error::GitHub returned empty release notes"; exit 1; }
+          printf '%s\n' "$notes" > assets/release-notes.txt
+          iconv -f UTF-8 -t UTF-8 assets/release-notes.txt >/dev/null
+          test -s assets/release-notes.txt
+          test "$(wc -c < assets/release-notes.txt)" -le 262144 || {
+            echo "::error::release notes exceed the updater's 256 KiB limit"
+            exit 1
+          }
+
+      - name: Carry forward the signed rollback catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${TAG#fork-v}"
+          [[ "$TAG" =~ ^fork-v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "::error::only stable fork-vMAJOR.MINOR.PATCH releases enter the Studio update catalog"
+            exit 1
+          }
+          mkdir -p previous-catalog
+          previous_tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name)"
+          current_release_version="${previous_tag#fork-v}"
+          [[ "$previous_tag" == fork-v* && "$current_release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "::error::the current latest release is not a stable fork tag; refusing to promote out of order"
+            exit 1
+          }
+          newest_release="$(printf '%s\n%s\n' "$current_release_version" "$version" | sort -V | tail -n 1)"
+          [[ "$newest_release" == "$version" && "$current_release_version" != "$version" ]] || {
+            echo "::error::${TAG} is not strictly newer than the current latest release ${previous_tag}"
+            exit 1
+          }
+          if [[ -n "$previous_tag" ]]; then
+            previous_assets="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${previous_tag}" --jq '[.assets[].name] | .[]')"
+            if grep -Fxq studio-versions.json <<<"$previous_assets"; then
+              gh release download "$previous_tag" --repo "$GITHUB_REPOSITORY" --pattern studio-versions.json --dir previous-catalog
+              previous_version="${previous_tag#fork-v}"
+              jq -e --arg repo "$GITHUB_REPOSITORY" --arg version "$previous_version" --arg tag "$previous_tag" '(.schemaVersion == 1) and (.versions | type == "array") and (.withdrawn | type == "array") and any((.versions + .withdrawn)[]; .version == $version and .tag == $tag)' previous-catalog/studio-versions.json >/dev/null || {
+                echo "::error::the latest updater release is absent from its catalog; refusing to lose rollback history"
+                exit 1
+              }
+            elif grep -Eq 'ReasonixStudio-(windows-amd64-installer\.exe|linux-amd64\.deb)\.minisig|latest\.json' <<<"$previous_assets"; then
+              echo "::error::the latest updater release is missing studio-versions.json; refusing to lose rollback history"
+              exit 1
+            elif [[ "$previous_tag" != "fork-v4.0.2" ]]; then
+              echo "::error::bootstrap is only allowed from the known pre-updater release fork-v4.0.2"
+              exit 1
+            fi
+          fi
+          if [[ ! -f previous-catalog/studio-versions.json ]]; then
+            printf '{"schemaVersion":1,"versions":[],"withdrawn":[]}\n' > previous-catalog/studio-versions.json
+          fi
+          jq -e --arg repo "$GITHUB_REPOSITORY" '(.schemaVersion == 1) and (.versions | type == "array") and (.withdrawn | type == "array") and all((.versions + .withdrawn)[]; (.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+$")) and (.tag == ("fork-v" + .version)) and (.manifest == ("https://github.com/" + $repo + "/releases/download/" + .tag + "/latest.json")) and (.notes == "release-notes.txt"))' previous-catalog/studio-versions.json >/dev/null || {
+            echo "::error::existing updater catalog is invalid; refusing to replace rollback history"
+            exit 1
+          }
+          current="$(jq -r '[.versions[]?.version] | .[]' previous-catalog/studio-versions.json | sort -V | tail -n 1)"
+          if [[ -n "$current" ]]; then
+            newest="$(printf '%s\n%s\n' "$current" "$version" | sort -V | tail -n 1)"
+            if [[ "$newest" != "$version" || "$current" == "$version" ]]; then
+              echo "::error::${TAG} is not strictly newer than the latest eligible updater release ${current}"
+              exit 1
+            fi
+          fi
+          published_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          manifest="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/latest.json"
+          jq --arg version "$version" --arg tag "$TAG" --arg publishedAt "$published_at" --arg manifest "$manifest" '
+            . as $old |
+            {
+              schemaVersion: ($old.schemaVersion // 1),
+              updatedAt: $publishedAt,
+              versions: ((($old.versions // []) | map(select(.version != $version))) + [{version:$version,tag:$tag,channel:"stable",publishedAt:$publishedAt,manifest:$manifest,notes:"release-notes.txt"}] | sort_by(.version | split(".") | map(tonumber)) | reverse),
+              withdrawn: ($old.withdrawn // [])
+            }
+          ' previous-catalog/studio-versions.json > assets/studio-versions.json
+
+      - name: Verify complete updater inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in \
+            ReasonixStudio-windows-amd64-installer.exe.minisig \
+            ReasonixStudio-linux-amd64.deb.minisig \
+            latest.json release-notes.txt studio-versions.json; do
+            test -s "assets/$file" || { echo "::error::missing updater release asset: $file"; exit 1; }
+          done
+
       - name: Publish
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
           name: Fork ${{ env.TAG }}
-          generate_release_notes: true
+          body_path: assets/release-notes.txt
+          generate_release_notes: false
+          draft: true
           prerelease: false
-          make_latest: true
+          make_latest: false
           files: |
             assets/reasonix-windows-amd64.exe
             assets/reasonix-windows-arm64.exe
@@ -426,3 +585,25 @@ jobs:
             assets/ReasonixStudio-linux-arm64.rpm
             assets/ReasonixStudio-linux-arm64.AppImage
             assets/SHA256SUMS
+            assets/ReasonixStudio-windows-amd64-installer.exe.minisig
+            assets/ReasonixStudio-linux-amd64.deb.minisig
+            assets/latest.json
+            assets/release-notes.txt
+            assets/studio-versions.json
+          fail_on_unmatched_files: true
+
+      - name: Verify the draft release inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,assets > release.json
+          jq -e '.isDraft == true and (.assets | type == "array" and length == 18) and all(.assets[]; .state == "uploaded" and .size > 0) and ([.assets[].name] | index("ReasonixStudio-windows-amd64-installer.exe") != null) and ([.assets[].name] | index("ReasonixStudio-windows-amd64-installer.exe.minisig") != null) and ([.assets[].name] | index("ReasonixStudio-linux-amd64.deb") != null) and ([.assets[].name] | index("ReasonixStudio-linux-amd64.deb.minisig") != null) and ([.assets[].name] | index("latest.json") != null) and ([.assets[].name] | index("release-notes.txt") != null) and ([.assets[].name] | index("studio-versions.json") != null) and ([.assets[] | select(.name == "release-notes.txt")][0].contentType | startswith("text/plain") or . == "application/octet-stream")' release.json >/dev/null || {
+            echo "::error::draft release is missing a required updater asset or text/plain release notes"
+            exit 1
+          }
+
+      - name: Publish the completed release as latest
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest

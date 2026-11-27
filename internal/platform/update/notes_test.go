@@ -45,7 +45,7 @@ func notesReq(t *testing.T, c *http.Client) notesRequest {
 
 func TestNotesURLIsBuiltFromAReleaseVersionOnly(t *testing.T) {
 	v, err := notesVersion("v2.31.0")
-	if got := notesURL(v); err != nil || got != "https://dl.reasonix.io/studio/notes/2.31.0.md" {
+	if got := notesURL(v); err != nil || got != "https://github.com/Hamza-ali1223/DeepSeek-Reasonix/releases/download/fork-v2.31.0/release-notes.txt" {
 		t.Fatalf("notesURL(v2.31.0) = %q, %v", got, err)
 	}
 	for _, bad := range []string{"", "latest", "../../x", "2.31", "2.31.0/../../x", "2.31.0?x=1", "https://evil.test/a"} {
@@ -57,7 +57,7 @@ func TestNotesURLIsBuiltFromAReleaseVersionOnly(t *testing.T) {
 
 func TestSecondReadComesFromDiskWithoutTheNetwork(t *testing.T) {
 	c, hits := mirror(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/studio/notes/2.31.0.md" {
+		if r.URL.Path != "/Hamza-ali1223/DeepSeek-Reasonix/releases/download/fork-v2.31.0/release-notes.txt" {
 			t.Errorf("fetched %s", r.URL.Path)
 		}
 		_, _ = w.Write([]byte("# notes\n- a\n"))

@@ -33,6 +33,7 @@ export interface VersionHub {
   stalePin: boolean;
   latest: string;
   newer: boolean;
+  canInstall: boolean;
   versions: VersionEntry[];
   withdrawn?: WithdrawnNote;
   err?: string;

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 // release-studio.yml. It is a constant rather than something a caller names: a
 // catalog that could be pointed elsewhere is one whose entries would offer to
 // "update" Studio into a different product.
-const StudioCatalog = StudioMirror + "/studio/versions.json"
+const StudioCatalog = "https://github.com/Hamza-ali1223/DeepSeek-Reasonix/releases/latest/download/studio-versions.json"
 
 // Install is what a shell knows about itself that the kernel cannot work out.
 // A Go process inside an Electron bundle resolves neither half: os.Executable()
@@ -23,8 +24,9 @@ const StudioCatalog = StudioMirror + "/studio/versions.json"
 // spawned it. A shell that cannot answer leaves both empty and gets a hub that
 // says what runs without offering to change it.
 type Install struct {
-	Version string
-	Layout  Layout
+	Version    string
+	Layout     Layout
+	CanInstall bool
 }
 
 // VersionEntry is one published release as a version panel shows it.
@@ -48,12 +50,13 @@ type WithdrawnNote struct {
 // the data rather than replacing it: an unreachable catalog must not hide which
 // version is running.
 type VersionHub struct {
-	Current  string         `json:"current"`
-	Pinned   string         `json:"pinned"`
-	StalePin bool           `json:"stalePin"`
-	Latest   string         `json:"latest"`
-	Newer    bool           `json:"newer"`
-	Versions []VersionEntry `json:"versions"`
+	Current    string         `json:"current"`
+	Pinned     string         `json:"pinned"`
+	StalePin   bool           `json:"stalePin"`
+	Latest     string         `json:"latest"`
+	Newer      bool           `json:"newer"`
+	CanInstall bool           `json:"canInstall"`
+	Versions   []VersionEntry `json:"versions"`
 	// Withdrawn is set when the running version is one the publisher pulled.
 	Withdrawn *WithdrawnNote `json:"withdrawn,omitempty"`
 	Err       string         `json:"err,omitempty"`
@@ -72,14 +75,14 @@ func Hub(ctx context.Context, in Install) VersionHub {
 // HubRefreshing is Hub that can skip the answer a recent read left behind, for
 // a reader who asked to try again.
 func HubRefreshing(ctx context.Context, in Install, refresh bool) VersionHub {
-	key := in.Version + "\x00" + PinnedVersion()
+	key := in.Version + "\x00" + PinnedVersion() + "\x00" + strconv.FormatBool(in.CanInstall)
 	return memo.get(ctx, key, refresh, time.Now, func(ctx context.Context) VersionHub { return readHub(ctx, in) })
 }
 
 func readHub(ctx context.Context, in Install) VersionHub {
 	client, err := netclient.NewHTTPClient(ProxySpec(), netclient.TransportOptions{})
 	if err != nil {
-		hub := VersionHub{Current: in.Version, Pinned: PinnedVersion()}
+		hub := VersionHub{Current: in.Version, Pinned: PinnedVersion(), CanInstall: in.CanInstall}
 		hub.Err, hub.Versions = err.Error(), versionRows(nil, in.Version)
 		return hub.nonNil()
 	}
@@ -90,7 +93,7 @@ func readHub(ctx context.Context, in Install) VersionHub {
 // catalog without reaching the network. The catalog URL stays a constant: what
 // is injectable here is how the fetch travels, never where it lands.
 func hubOver(ctx context.Context, in Install, client *http.Client) VersionHub {
-	hub := VersionHub{Current: in.Version, Pinned: PinnedVersion()}
+	hub := VersionHub{Current: in.Version, Pinned: PinnedVersion(), CanInstall: in.CanInstall}
 	ctx, cancel := context.WithTimeout(ctx, catalogTimeout)
 	defer cancel()
 	st, err := New(Options{Current: in.Version, Pinned: hub.Pinned, HTTP: client, IndexURL: StudioCatalog, UserAgent: UserAgent(in.Version)}).Check(ctx)
