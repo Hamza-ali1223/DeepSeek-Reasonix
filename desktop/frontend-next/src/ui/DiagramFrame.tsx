@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { t } from "../i18n";
 import { CopyButton } from "./CopyButton";
 import { ImageViewer } from "./ImagePreview";
@@ -68,7 +68,7 @@ function DiagramPicture({ src, label, view }: { src: string; label: string; view
   const box = useRef<HTMLDivElement>(null);
   const img = useRef<HTMLImageElement>(null);
   const { zoom } = view;
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
